@@ -10,6 +10,10 @@
 !.yarn/releases
 !.yarn/versions
 
+# MCP server dependencies
+/mcp-servers/adyn-marketing/node_modules
+/mcp-servers/adyn-support/node_modules
+
 # testing
 /coverage
 
@@ -19,6 +23,10 @@
 
 # production
 /build
+
+# MCP server builds
+/mcp-servers/adyn-marketing/dist
+/mcp-servers/adyn-support/dist
 
 # misc
 .DS_Store
@@ -32,6 +40,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +48,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# MongoDB
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp

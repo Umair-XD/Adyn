@@ -1,36 +1,259 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Adyn - Marketing Intelligence Platform
 
-## Getting Started
+A comprehensive SaaS platform that leverages the Model Context Protocol (MCP) to provide autonomous marketing analysis and campaign generation across Facebook, Instagram, TikTok, and Google.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **MCP-Based Marketing Agent**: Analyzes websites and generates comprehensive marketing campaigns
+- **MCP-Based Support Agent**: Provides platform assistance and guidance
+- **Full-Stack Web Application**: Built with Next.js 14+, TypeScript, and TailwindCSS
+- **Project Management**: Organize campaigns by client or product
+- **URL Analysis**: Automatically extract insights from any website
+- **Multi-Platform Campaigns**: Generate ads for Facebook, Instagram, TikTok, and Google
+- **Audience Targeting**: Detailed demographic and behavioral targeting
+- **Campaign Strategy**: Budget suggestions, duration, and format recommendations
+- **Support Chat Widget**: Integrated AI support assistant
+- **JSON Export**: Export complete campaign data
+
+## Tech Stack
+
+- **Frontend**: Next.js 14+ (App Router), React, TypeScript, TailwindCSS
+- **Backend**: Next.js API Routes, NextAuth
+- **Database**: MongoDB with Prisma ORM
+- **MCP Servers**: Node.js with @modelcontextprotocol/sdk
+- **Authentication**: NextAuth with credentials provider
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- MongoDB (local or MongoDB Atlas)
+
+## Installation
+
+1. **Clone and navigate to the project**:
+   ```bash
+   cd adyn-platform
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Install MCP server dependencies**:
+   ```bash
+   cd mcp-servers/adyn-marketing
+   npm install
+   npm run build
+   cd ../adyn-support
+   npm install
+   npm run build
+   cd ../..
+   ```
+
+4. **Set up environment variables**:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and update:
+   - `DATABASE_URL`: Your MongoDB connection string
+   - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
+   - `NEXTAUTH_URL`: Your app URL (http://localhost:3000 for development)
+
+5. **Initialize the database**:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+## Running the Application
+
+1. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+
+2. **Open your browser**:
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+3. **Create an account**:
+   - Click "Sign up" on the login page
+   - Enter your email and password
+   - Start creating projects and analyzing URLs!
+
+## Project Structure
+
+```
+adyn-platform/
+├── app/                          # Next.js app directory
+│   ├── api/                      # API routes
+│   │   ├── auth/                 # Authentication endpoints
+│   │   ├── adyn/                 # Marketing agent endpoints
+│   │   ├── support/              # Support chat endpoints
+│   │   ├── projects/             # Project CRUD endpoints
+│   │   └── campaigns/            # Campaign endpoints
+│   ├── dashboard/                # Dashboard pages
+│   │   ├── projects/             # Project management
+│   │   └── campaigns/            # Campaign details
+│   ├── login/                    # Login page
+│   └── register/                 # Registration page
+├── components/                   # React components
+│   └── support/                  # Support chat widget
+├── lib/                          # Utilities
+│   ├── prisma.ts                 # Prisma client
+│   ├── auth.ts                   # NextAuth configuration
+│   └── mcp-client.ts             # MCP client manager
+├── mcp-servers/                  # MCP servers
+│   ├── adyn-marketing/           # Marketing intelligence agent
+│   │   └── src/
+│   │       ├── tools/            # MCP tools
+│   │       └── index.ts          # Server entry point
+│   └── adyn-support/             # Support agent
+│       └── src/
+│           └── index.ts          # Server entry point
+├── prisma/                       # Database schema
+│   └── schema.prisma
+├── types/                        # TypeScript types
+│   ├── index.ts                  # MCP tool types
+│   └── next-auth.d.ts            # NextAuth types
+└── .env                          # Environment variables
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Usage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Creating a Project
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Navigate to the Dashboard
+2. Click "Create New Project"
+3. Enter project name and description
+4. Click "Create Project"
 
-## Learn More
+### Analyzing a URL
 
-To learn more about Next.js, take a look at the following resources:
+1. Open a project
+2. Click "Analyze URL"
+3. Enter the website URL
+4. Select campaign objective
+5. Click "Analyze"
+6. Wait for the analysis to complete (usually 10-30 seconds)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Viewing Campaign Results
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Click on a campaign from the project page
+2. View tabs:
+   - **Overview**: Product summary and keywords
+   - **Ads**: Platform-specific ad creatives
+   - **Audience**: Targeting demographics and behaviors
+   - **Strategy**: Budget, duration, and formats
 
-## Deploy on Vercel
+### Exporting Campaign Data
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Open a campaign
+2. Click "Export JSON"
+3. Save the JSON file with complete campaign data
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Using Support Chat
+
+1. Click the chat icon in the bottom-right corner
+2. Ask questions about platform features
+3. Get instant help and guidance
+
+## MCP Tools
+
+### Adyn Marketing Agent Tools
+
+1. **fetch_url**: Fetches HTML content from a URL
+2. **extract_content**: Extracts readable content, images, and metadata
+3. **semantic_analyze**: Analyzes text for marketing insights
+4. **generate_ads**: Creates platform-specific ad creatives
+5. **audience_builder**: Builds detailed audience targeting
+6. **campaign_builder**: Generates complete campaign strategy
+
+### Adyn Support Agent
+
+- No tools (conversational only)
+- Provides platform guidance and troubleshooting
+- Redirects marketing requests to main workspace
+
+## API Endpoints
+
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/[...nextauth]` - NextAuth authentication
+- `GET /api/projects` - List user projects
+- `POST /api/projects` - Create new project
+- `GET /api/projects/[id]` - Get project details
+- `PUT /api/projects/[id]` - Update project
+- `DELETE /api/projects/[id]` - Delete project
+- `GET /api/campaigns/[id]` - Get campaign details
+- `POST /api/adyn/generate` - Generate marketing campaign
+- `POST /api/support/chat` - Support chat messages
+
+## Development
+
+### Building MCP Servers
+
+```bash
+cd mcp-servers/adyn-marketing
+npm run build
+
+cd ../adyn-support
+npm run build
+```
+
+### Database Migrations
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### Type Checking
+
+```bash
+npm run build
+```
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push code to GitHub
+2. Import project in Vercel
+3. Add environment variables
+4. Deploy
+
+### Environment Variables for Production
+
+- `DATABASE_URL`: MongoDB Atlas connection string
+- `NEXTAUTH_URL`: Your production URL
+- `NEXTAUTH_SECRET`: Secure random string
+- `OPENAI_API_KEY`: (Optional) For enhanced semantic analysis
+
+## Troubleshooting
+
+### MCP Server Connection Issues
+
+- Ensure MCP servers are built: `npm run build` in each server directory
+- Check server paths in `lib/mcp-client.ts`
+- Verify Node.js version (18+)
+
+### Database Connection Issues
+
+- Verify MongoDB is running
+- Check `DATABASE_URL` in `.env`
+- Run `npx prisma db push` to sync schema
+
+### Authentication Issues
+
+- Verify `NEXTAUTH_SECRET` is set
+- Check `NEXTAUTH_URL` matches your app URL
+- Clear browser cookies and try again
+
+## License
+
+MIT
+
+## Support
+
+For issues and questions, use the in-app support chat or create an issue on GitHub.
