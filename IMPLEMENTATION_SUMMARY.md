@@ -27,7 +27,7 @@ Successfully implemented a complete SaaS marketing intelligence platform called 
 
 ### 2. Full-Stack Next.js Application
 
-#### Database (MongoDB + Prisma)
+#### Database (MongoDB + Mongoose)
 - **5 Collections**:
   - `users` - User accounts with authentication
   - `projects` - Project organization
@@ -111,7 +111,7 @@ Successfully implemented a complete SaaS marketing intelligence platform called 
 **Backend**:
 - Next.js API Routes
 - NextAuth for authentication
-- Prisma ORM
+- Mongoose ODM
 - MongoDB database
 
 **MCP Integration**:
@@ -163,7 +163,7 @@ adyn-platform/
 │   └── support/
 │       └── chat-widget.tsx
 ├── lib/
-│   ├── prisma.ts
+│   ├── mongoose.ts
 │   ├── auth.ts
 │   └── mcp-client.ts
 ├── mcp-servers/
@@ -184,8 +184,12 @@ adyn-platform/
 │       │   └── index.ts
 │       ├── package.json
 │       └── tsconfig.json
-├── prisma/
-│   └── schema.prisma
+├── models/
+│   ├── User.ts
+│   ├── Project.ts
+│   ├── Source.ts
+│   ├── Campaign.ts
+│   └── GenerationLog.ts
 ├── types/
 │   ├── index.ts
 │   └── next-auth.d.ts
@@ -219,7 +223,7 @@ adyn-platform/
 
 **Built and Verified**:
 - ✅ MCP servers compile successfully
-- ✅ Prisma client generated
+- ✅ Mongoose models created
 - ✅ TypeScript compilation passes
 - ✅ No diagnostic errors in key files
 - ✅ All dependencies installed
@@ -239,7 +243,6 @@ cd adyn-platform
 npm run setup
 cp .env.example .env
 # Edit .env with your MongoDB URL and secrets
-npm run prisma:push
 npm run dev
 ```
 

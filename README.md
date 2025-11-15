@@ -19,7 +19,7 @@ A comprehensive SaaS platform that leverages the Model Context Protocol (MCP) to
 
 - **Frontend**: Next.js 14+ (App Router), React, TypeScript, TailwindCSS
 - **Backend**: Next.js API Routes, NextAuth
-- **Database**: MongoDB with Prisma ORM
+- **Database**: MongoDB with Mongoose ODM
 - **MCP Servers**: Node.js with @modelcontextprotocol/sdk
 - **Authentication**: NextAuth with credentials provider
 
@@ -61,11 +61,12 @@ A comprehensive SaaS platform that leverages the Model Context Protocol (MCP) to
    - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
    - `NEXTAUTH_URL`: Your app URL (http://localhost:3000 for development)
 
-5. **Initialize the database**:
+5. **Start the development server**:
    ```bash
-   npx prisma generate
-   npx prisma db push
+   npm run dev
    ```
+   
+   MongoDB will connect automatically when the app starts.
 
 ## Running the Application
 
@@ -101,7 +102,7 @@ adyn-platform/
 ├── components/                   # React components
 │   └── support/                  # Support chat widget
 ├── lib/                          # Utilities
-│   ├── prisma.ts                 # Prisma client
+│   ├── mongoose.ts               # MongoDB connection
 │   ├── auth.ts                   # NextAuth configuration
 │   └── mcp-client.ts             # MCP client manager
 ├── mcp-servers/                  # MCP servers
@@ -112,8 +113,12 @@ adyn-platform/
 │   └── adyn-support/             # Support agent
 │       └── src/
 │           └── index.ts          # Server entry point
-├── prisma/                       # Database schema
-│   └── schema.prisma
+├── models/                       # Mongoose models
+│   ├── User.ts
+│   ├── Project.ts
+│   ├── Source.ts
+│   ├── Campaign.ts
+│   └── GenerationLog.ts
 ├── types/                        # TypeScript types
 │   ├── index.ts                  # MCP tool types
 │   └── next-auth.d.ts            # NextAuth types
@@ -201,12 +206,11 @@ cd ../adyn-support
 npm run build
 ```
 
-### Database Migrations
+### MongoDB Connection
 
-```bash
-npx prisma generate
-npx prisma db push
-```
+MongoDB connects automatically when the app starts. Make sure:
+- MongoDB is running locally, OR
+- You have a valid MongoDB Atlas connection string in `.env`
 
 ### Type Checking
 
@@ -240,9 +244,9 @@ npm run build
 
 ### Database Connection Issues
 
-- Verify MongoDB is running
+- Verify MongoDB is running (local or Atlas)
 - Check `DATABASE_URL` in `.env`
-- Run `npx prisma db push` to sync schema
+- Restart the development server
 
 ### Authentication Issues
 

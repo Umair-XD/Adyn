@@ -20,7 +20,6 @@ npm run setup
 This command will:
 - Install all Node.js dependencies
 - Build both MCP servers (marketing and support agents)
-- Generate Prisma client
 
 ### 2. Configure Environment Variables
 
@@ -51,15 +50,7 @@ OPENAI_API_KEY=""
 openssl rand -base64 32
 ```
 
-### 3. Initialize Database
-
-Push the Prisma schema to your MongoDB:
-
-```bash
-npm run prisma:push
-```
-
-### 4. Start the Development Server
+### 3. Start the Development Server
 
 ```bash
 npm run dev
@@ -136,14 +127,14 @@ npm install
 npm run build
 ```
 
-### Prisma Client Not Generated
+### Mongoose Connection Issues
 
-**Error**: "Cannot find module '@prisma/client'"
+**Error**: "MongooseError: Operation failed"
 
 **Solution**:
-```bash
-npm run prisma:generate
-```
+- Ensure MongoDB is running
+- Check your DATABASE_URL in `.env`
+- Restart the development server
 
 ### Port Already in Use
 
@@ -174,20 +165,15 @@ After making changes to MCP server code:
 npm run build:mcp
 ```
 
-### Resetting the Database
-
-To clear all data and start fresh:
-
-```bash
-npm run prisma:push -- --force-reset
-```
-
 ### Viewing Database
 
-Use Prisma Studio to browse your database:
+Use MongoDB Compass (GUI) or mongosh (CLI) to browse your database:
 
+**MongoDB Compass**: Download from https://www.mongodb.com/products/compass
+
+**Or use mongosh**:
 ```bash
-npx prisma studio
+mongosh mongodb://localhost:27017/adyn
 ```
 
 ### Checking Logs
