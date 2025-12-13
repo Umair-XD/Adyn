@@ -30,6 +30,8 @@ export interface AdCreative {
     secondary_interests: string[];
     behavioral_interests: string[];
     trending_interests: string[];
+    lookalike_audiences: string[];
+    demographic_insights: string;
   };
 }
 
@@ -39,6 +41,8 @@ export interface GenerateAdsOutput {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
+    reasoningTokens: number;
+    cachedInputTokens: number;
   };
 }
 
@@ -56,7 +60,9 @@ const schema = z.object({
       primary_interests: z.array(z.string()),
       secondary_interests: z.array(z.string()),
       behavioral_interests: z.array(z.string()),
-      trending_interests: z.array(z.string())
+      trending_interests: z.array(z.string()),
+      lookalike_audiences: z.array(z.string()),
+      demographic_insights: z.string()
     })
   }))
 });
@@ -65,7 +71,7 @@ export async function generateAds(input: GenerateAdsInput): Promise<GenerateAdsO
   try {
     const currentDate = new Date().toISOString().split('T')[0];
     
-    const prompt = `You are a creative advertising expert. Generate platform-specific ad creatives for each target segment.
+    const prompt = `You are a creative advertising expert with deep knowledge of viral content, current trends, and platform algorithms. Generate platform-specific ad creatives that are highly engaging and trend-aware.
 
 Product Summary: ${input.summary}
 Brand Tone: ${input.brand_tone}
@@ -74,33 +80,53 @@ Use Cases: ${input.use_cases?.join(', ') || 'N/A'}
 Target Segments: ${JSON.stringify(input.target_segments || [])}
 Platforms: ${input.platforms.join(', ')}
 
-Current Date: ${currentDate} - Consider current trends and seasonal relevance.
+Current Date: ${currentDate} - CRITICAL: Consider December 2024 trends, holiday season, year-end themes, New Year resolutions prep, winter season, and current viral content patterns.
 
-For EACH combination of platform and target segment, create a unique ad creative that:
-1. Speaks directly to that segment's pain points
-2. Uses platform-specific best practices and current trends
-3. Includes relevant hashtags (especially trending ones for TikTok/Instagram)
-4. Has a compelling hook that addresses the specific use case
-5. Includes targeting notes for ad platform setup
+TRENDING CONTEXT FOR DECEMBER 2024:
+- Holiday shopping fatigue, post-Black Friday mindset
+- New Year resolution planning and goal-setting content
+- Winter wellness and productivity themes
+- AI productivity tools trending heavily
+- "Winter arc" fitness/self-improvement trend
+- Year-end reflection and 2025 planning content
+- Cozy/hygge lifestyle content performing well
+- Short-form video content dominating (15-30 seconds optimal)
+
+For EACH combination of platform and target segment, create HIGHLY ENGAGING ad creatives that:
+1. Hook viewers in the first 3 seconds with trending formats
+2. Use current viral language patterns and phrases
+3. Address specific pain points with urgency and relatability
+4. Include platform-native elements (TikTok sounds, Instagram Reels trends, etc.)
+5. Leverage seasonal psychology and current cultural moments
+6. Use proven high-engagement formats (before/after, day-in-life, problem/solution)
 
 Return a JSON object with an "ads" array. Each ad should have:
 - platform: Platform name
 - target_segment: Which audience segment this targets
-- headline: Attention-grabbing headline (max 40 chars for Google, 125 for Facebook)
-- primary_text: Main ad copy (engaging and specific to the segment)
-- cta: Call to action button text
-- creative_description: Detailed description of the visual/video creative
-- hashtags: Array of relevant hashtags (include trending ones)
-- targeting_notes: Specific targeting recommendations for this segment
-- interest_targeting: Detailed interest-based targeting with:
-  - primary_interests: Core interests directly related to the product (5-8 interests)
-  - secondary_interests: Related interests that expand reach (5-8 interests)
-  - behavioral_interests: Behavioral patterns and purchase behaviors (3-5 behaviors)
-  - trending_interests: Current trending topics/interests relevant to this segment (3-5 trends)
+- headline: VIRAL-STYLE headline that stops scrolling (use trending phrases, emojis, urgency)
+- primary_text: Engaging copy using current slang/trends, storytelling hooks, social proof
+- cta: Action-oriented CTA that creates FOMO
+- creative_description: Detailed visual/video concept using trending formats
+- hashtags: Mix of trending hashtags + niche hashtags (research current viral tags)
+- targeting_notes: Specific targeting for maximum engagement
+- interest_targeting: HYPER-SPECIFIC interest targeting:
+  - primary_interests: Core product-related interests (8-12 very specific interests)
+  - secondary_interests: Lifestyle/behavior interests that correlate (8-12 interests)
+  - behavioral_interests: Purchase behaviors, app usage, engagement patterns (5-8 behaviors)
+  - trending_interests: December 2024 trending topics/viral content themes (5-8 current trends)
+  - lookalike_audiences: Suggest competitor audiences or similar successful brands to target
+  - demographic_insights: Age, gender, location, income insights for this creative
 
-For interest targeting, be VERY specific. Instead of "Technology", use "Artificial Intelligence", "Machine Learning", "Software Development", "Tech Startups", etc.
+CREATIVE FORMATS TO USE:
+- "POV: You're trying to..." format
+- "Tell me you're X without telling me you're X"
+- Before/after transformations
+- "Day in my life using..." 
+- Problem/solution storytelling
+- User-generated content style
+- Trending audio/music references
 
-Generate at least 2-3 ads per platform, each targeting a different segment.`;
+Generate 3-4 ads per platform, each with different viral angles and targeting strategies.`;
 
     const { object, usage } = await generateObject({
       model: openai('gpt-4o'),
@@ -115,7 +141,9 @@ Generate at least 2-3 ads per platform, each targeting a different segment.`;
       usage: usage ? {
         promptTokens: (usage as any).inputTokens || 0,
         completionTokens: (usage as any).outputTokens || 0,
-        totalTokens: (usage as any).totalTokens || 0
+        totalTokens: (usage as any).totalTokens || 0,
+        reasoningTokens: (usage as any).reasoningTokens || 0,
+        cachedInputTokens: (usage as any).cachedInputTokens || 0
       } : undefined
     };
   } catch (error) {

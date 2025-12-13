@@ -46,6 +46,8 @@ export interface AudienceBuilderOutput {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
+    reasoningTokens: number;
+    cachedInputTokens: number;
   };
 }
 
@@ -138,7 +140,9 @@ Return valid JSON with all fields filled.`;
       usage: usage ? {
         promptTokens: (usage as any).inputTokens || 0,
         completionTokens: (usage as any).outputTokens || 0,
-        totalTokens: (usage as any).totalTokens || 0
+        totalTokens: (usage as any).totalTokens || 0,
+        reasoningTokens: (usage as any).reasoningTokens || 0,
+        cachedInputTokens: (usage as any).cachedInputTokens || 0
       } : undefined
     };
   } catch (error) {

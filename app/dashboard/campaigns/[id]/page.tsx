@@ -43,6 +43,8 @@ interface CampaignStats {
     inputTokens: number;
     outputTokens: number;
     totalTokens: number;
+    reasoningTokens: number;
+    cachedInputTokens: number;
     cost: number;
     callCount: number;
   }>;
@@ -274,6 +276,45 @@ export default function CampaignDetailPage() {
                       </div>
                     </div>
                   )}
+                  {ad.interest_targeting && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Interest Targeting</p>
+                      <div className="mt-2 space-y-2">
+                        <div>
+                          <p className="text-xs font-medium text-purple-700">Primary Interests</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {ad.interest_targeting.primary_interests?.map((interest, i) => (
+                              <span key={i} className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">{interest}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-green-700">Trending Interests</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {ad.interest_targeting.trending_interests?.map((interest, i) => (
+                              <span key={i} className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">{interest}</span>
+                            ))}
+                          </div>
+                        </div>
+                        {ad.interest_targeting.lookalike_audiences && ad.interest_targeting.lookalike_audiences.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-orange-700">Lookalike Audiences</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {ad.interest_targeting.lookalike_audiences.map((audience, i) => (
+                                <span key={i} className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">{audience}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {ad.interest_targeting.demographic_insights && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-700">Demographics</p>
+                            <p className="text-xs text-gray-600 mt-1">{ad.interest_targeting.demographic_insights}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -445,22 +486,28 @@ export default function CampaignDetailPage() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Action/Tool
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Input Tokens
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Output Tokens
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Reasoning Tokens
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Cached Tokens
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Total Tokens
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Calls
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Cost
                             </th>
                           </tr>
@@ -468,22 +515,28 @@ export default function CampaignDetailPage() {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {stats.moduleBreakdown.map((module, idx) => (
                             <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                 {module.module}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {module.inputTokens.toLocaleString()}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {module.outputTokens.toLocaleString()}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-600">
+                                {module.reasoningTokens?.toLocaleString() || '0'}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-green-600">
+                                {module.cachedInputTokens?.toLocaleString() || '0'}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                                 {module.totalTokens.toLocaleString()}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {module.callCount}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                                 ${module.cost.toFixed(4)}
                               </td>
                             </tr>

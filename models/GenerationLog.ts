@@ -16,6 +16,8 @@ export interface IGenerationLog extends Document {
     inputTokens: number;
     outputTokens: number;
     totalTokens: number;
+    reasoningTokens: number;
+    cachedInputTokens: number;
     cost: number;
     callCount: number;
   }>;
@@ -39,6 +41,8 @@ const GenerationLogSchema = new Schema<IGenerationLog>({
     inputTokens: { type: Number, required: true },
     outputTokens: { type: Number, required: true },
     totalTokens: { type: Number, required: true },
+    reasoningTokens: { type: Number, default: 0 },
+    cachedInputTokens: { type: Number, default: 0 },
     cost: { type: Number, required: true },
     callCount: { type: Number, required: true }
   }],

@@ -100,6 +100,8 @@ interface GenerationLogData {
     inputTokens: number;
     outputTokens: number;
     totalTokens: number;
+    reasoningTokens: number;
+    cachedInputTokens: number;
     cost: number;
     callCount: number;
   }>;
@@ -116,7 +118,7 @@ function calculateStats(logs: GenerationLogData[]) {
   let totalCost = 0;
 
   const distribution: { [key: string]: { tokens: number; cost: number; count: number } } = {};
-  const moduleBreakdown: { [key: string]: { inputTokens: number; outputTokens: number; totalTokens: number; cost: number; callCount: number } } = {};
+  const moduleBreakdown: { [key: string]: { inputTokens: number; outputTokens: number; totalTokens: number; reasoningTokens: number; cachedInputTokens: number; cost: number; callCount: number } } = {};
 
   for (const log of logs) {
     let promptTokens = 0;
@@ -142,6 +144,8 @@ function calculateStats(logs: GenerationLogData[]) {
             inputTokens: 0,
             outputTokens: 0,
             totalTokens: 0,
+            reasoningTokens: 0,
+            cachedInputTokens: 0,
             cost: 0,
             callCount: 0
           };
@@ -149,6 +153,8 @@ function calculateStats(logs: GenerationLogData[]) {
         moduleBreakdown[module.module].inputTokens += module.inputTokens;
         moduleBreakdown[module.module].outputTokens += module.outputTokens;
         moduleBreakdown[module.module].totalTokens += module.totalTokens;
+        moduleBreakdown[module.module].reasoningTokens += module.reasoningTokens || 0;
+        moduleBreakdown[module.module].cachedInputTokens += module.cachedInputTokens || 0;
         moduleBreakdown[module.module].cost += module.cost;
         moduleBreakdown[module.module].callCount += module.callCount;
       }

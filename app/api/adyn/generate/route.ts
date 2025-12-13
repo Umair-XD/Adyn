@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
         inputTokens: number;
         outputTokens: number;
         totalTokens: number;
+        reasoningTokens: number;
+        cachedInputTokens: number;
         cost: number;
         callCount: number;
       }> = [];
@@ -67,6 +69,8 @@ export async function POST(req: NextRequest) {
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: 0,
+        reasoningTokens: 0,
+        cachedInputTokens: 0,
         cost: 0,
         callCount: 1
       });
@@ -82,6 +86,8 @@ export async function POST(req: NextRequest) {
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: 0,
+        reasoningTokens: 0,
+        cachedInputTokens: 0,
         cost: 0,
         callCount: 1
       });
@@ -99,6 +105,8 @@ export async function POST(req: NextRequest) {
           inputTokens: analysis.usage.promptTokens,
           outputTokens: analysis.usage.completionTokens,
           totalTokens: analysis.usage.totalTokens,
+          reasoningTokens: analysis.usage.reasoningTokens,
+          cachedInputTokens: analysis.usage.cachedInputTokens,
           cost,
           callCount: 1
         });
@@ -121,6 +129,8 @@ export async function POST(req: NextRequest) {
           inputTokens: audience.usage.promptTokens,
           outputTokens: audience.usage.completionTokens,
           totalTokens: audience.usage.totalTokens,
+          reasoningTokens: audience.usage.reasoningTokens,
+          cachedInputTokens: audience.usage.cachedInputTokens,
           cost,
           callCount: 1
         });
@@ -146,6 +156,8 @@ export async function POST(req: NextRequest) {
           inputTokens: adsData.usage.promptTokens,
           outputTokens: adsData.usage.completionTokens,
           totalTokens: adsData.usage.totalTokens,
+          reasoningTokens: adsData.usage.reasoningTokens,
+          cachedInputTokens: adsData.usage.cachedInputTokens,
           cost,
           callCount: 1
         });
@@ -167,6 +179,8 @@ export async function POST(req: NextRequest) {
           inputTokens: strategy.usage.promptTokens,
           outputTokens: strategy.usage.completionTokens,
           totalTokens: strategy.usage.totalTokens,
+          reasoningTokens: strategy.usage.reasoningTokens,
+          cachedInputTokens: strategy.usage.cachedInputTokens,
           cost,
           callCount: 1
         });

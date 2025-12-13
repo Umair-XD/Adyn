@@ -23,6 +23,8 @@ export interface SemanticAnalyzeOutput {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
+    reasoningTokens: number;
+    cachedInputTokens: number;
   };
 }
 
@@ -74,7 +76,9 @@ Be specific and actionable. For example, if it's blue light glasses, identify se
       usage: usage ? {
         promptTokens: (usage as any).inputTokens || 0,
         completionTokens: (usage as any).outputTokens || 0,
-        totalTokens: (usage as any).totalTokens || 0
+        totalTokens: (usage as any).totalTokens || 0,
+        reasoningTokens: (usage as any).reasoningTokens || 0,
+        cachedInputTokens: (usage as any).cachedInputTokens || 0
       } : undefined
     };
   } catch (error) {

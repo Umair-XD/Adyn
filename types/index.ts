@@ -41,11 +41,21 @@ export interface GenerateAdsInput {
 
 export interface AdCreative {
   platform: string;
+  target_segment: string;
   headline: string;
   primary_text: string;
   cta: string;
   creative_description: string;
   hashtags: string[];
+  targeting_notes: string;
+  interest_targeting: {
+    primary_interests: string[];
+    secondary_interests: string[];
+    behavioral_interests: string[];
+    trending_interests: string[];
+    lookalike_audiences: string[];
+    demographic_insights: string;
+  };
 }
 
 export interface GenerateAdsOutput {
