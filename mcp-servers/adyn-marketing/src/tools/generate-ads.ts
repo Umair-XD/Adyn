@@ -35,6 +35,11 @@ export interface AdCreative {
 
 export interface GenerateAdsOutput {
   ads: AdCreative[];
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 const schema = z.object({
@@ -97,7 +102,7 @@ For interest targeting, be VERY specific. Instead of "Technology", use "Artifici
 
 Generate at least 2-3 ads per platform, each targeting a different segment.`;
 
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: openai('gpt-4o'),
       schema,
       prompt,
@@ -105,7 +110,14 @@ Generate at least 2-3 ads per platform, each targeting a different segment.`;
       temperature: 0.8
     });
 
-    return object;
+    return {
+      ...object,
+      usage: usage ? {
+        promptTokens: (usage as any).inputTokens || 0,
+        completionTokens: (usage as any).outputTokens || 0,
+        totalTokens: (usage as any).totalTokens || 0
+      } : undefined
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`AI ad generation failed: ${errorMessage}`);

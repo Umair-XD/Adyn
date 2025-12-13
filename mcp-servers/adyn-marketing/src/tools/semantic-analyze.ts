@@ -19,6 +19,11 @@ export interface SemanticAnalyzeOutput {
     description: string;
     pain_points: string[];
   }>;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 const schema = z.object({
@@ -57,14 +62,21 @@ Provide a JSON response with:
 
 Be specific and actionable. For example, if it's blue light glasses, identify segments like "Remote Workers", "Gamers", "Software Developers" with their specific needs.`;
 
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: openai('gpt-4o'),
       schema,
       prompt,
       system: 'You are a marketing analysis expert. Provide detailed, actionable insights.',
     });
 
-    return object;
+    return {
+      ...object,
+      usage: usage ? {
+        promptTokens: (usage as any).inputTokens || 0,
+        completionTokens: (usage as any).outputTokens || 0,
+        totalTokens: (usage as any).totalTokens || 0
+      } : undefined
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`AI semantic analysis failed: ${errorMessage}`);

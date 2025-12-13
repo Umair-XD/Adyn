@@ -42,6 +42,11 @@ export interface AudienceBuilderOutput {
   behaviors: string[];
   segment_targeting: SegmentTargeting[];
   broad_audiences: BroadAudience[];
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 const schema = z.object({
@@ -120,7 +125,7 @@ Example broad audiences for ${currentMonth} ${currentYear}:
 
 Return valid JSON with all fields filled.`;
 
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: openai('gpt-4o'),
       schema,
       prompt,
@@ -128,7 +133,14 @@ Return valid JSON with all fields filled.`;
       temperature: 0.7
     });
 
-    return object;
+    return {
+      ...object,
+      usage: usage ? {
+        promptTokens: (usage as any).inputTokens || 0,
+        completionTokens: (usage as any).outputTokens || 0,
+        totalTokens: (usage as any).totalTokens || 0
+      } : undefined
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`AI audience building failed: ${errorMessage}`);

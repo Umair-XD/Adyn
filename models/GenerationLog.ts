@@ -11,6 +11,14 @@ export interface IGenerationLog extends Document {
     completion: number;
     total: number;
   };
+  moduleUsage?: Array<{
+    module: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    cost: number;
+    callCount: number;
+  }>;
   estimatedCost?: number;
   createdAt: Date;
 }
@@ -26,6 +34,14 @@ const GenerationLogSchema = new Schema<IGenerationLog>({
     completion: { type: Number },
     total: { type: Number }
   },
+  moduleUsage: [{
+    module: { type: String, required: true },
+    inputTokens: { type: Number, required: true },
+    outputTokens: { type: Number, required: true },
+    totalTokens: { type: Number, required: true },
+    cost: { type: Number, required: true },
+    callCount: { type: Number, required: true }
+  }],
   estimatedCost: { type: Number },
 }, {
   timestamps: { createdAt: true, updatedAt: false },

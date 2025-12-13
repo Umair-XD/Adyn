@@ -95,6 +95,14 @@ interface GenerationLogData {
       totalTokens?: number;
     }>;
   };
+  moduleUsage?: Array<{
+    module: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    cost: number;
+    callCount: number;
+  }>;
   requestPayload?: Record<string, unknown>;
   responsePayload?: Record<string, unknown>;
   agent?: string;
@@ -108,6 +116,7 @@ function calculateStats(logs: GenerationLogData[]) {
   let totalCost = 0;
 
   const distribution: { [key: string]: { tokens: number; cost: number; count: number } } = {};
+  const moduleBreakdown: { [key: string]: { inputTokens: number; outputTokens: number; totalTokens: number; cost: number; callCount: number } } = {};
 
   for (const log of logs) {
     let promptTokens = 0;
@@ -119,6 +128,30 @@ function calculateStats(logs: GenerationLogData[]) {
       promptTokens = log.tokensUsed.prompt || 0;
       completionTokens = log.tokensUsed.completion || 0;
       tokens = log.tokensUsed.total || promptTokens + completionTokens;
+    }
+    // Handle moduleUsage format (per-action breakdown)
+    else if (log.moduleUsage && log.moduleUsage.length > 0) {
+      for (const module of log.moduleUsage) {
+        promptTokens += module.inputTokens;
+        completionTokens += module.outputTokens;
+        tokens += module.totalTokens;
+
+        // Aggregate module breakdown
+        if (!moduleBreakdown[module.module]) {
+          moduleBreakdown[module.module] = {
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            cost: 0,
+            callCount: 0
+          };
+        }
+        moduleBreakdown[module.module].inputTokens += module.inputTokens;
+        moduleBreakdown[module.module].outputTokens += module.outputTokens;
+        moduleBreakdown[module.module].totalTokens += module.totalTokens;
+        moduleBreakdown[module.module].cost += module.cost;
+        moduleBreakdown[module.module].callCount += module.callCount;
+      }
     }
     // Handle old format (tokenUsage with byTool)
     else if (log.tokenUsage?.byTool) {
@@ -152,7 +185,7 @@ function calculateStats(logs: GenerationLogData[]) {
       distribution[agent] = { tokens: 0, cost: 0, count: 0 };
     }
     distribution[agent].tokens += tokens;
-    distribution[agent].cost += totalCost / logs.length; // Average cost per log
+    distribution[agent].cost += cost;
     distribution[agent].count += 1;
   }
 
@@ -173,6 +206,10 @@ function calculateStats(logs: GenerationLogData[]) {
     distribution: Object.entries(distribution).map(([agent, data]) => ({
       agent,
       ...data
-    }))
+    })),
+    moduleBreakdown: Object.entries(moduleBreakdown).map(([module, data]) => ({
+      module,
+      ...data
+    })).sort((a, b) => b.totalTokens - a.totalTokens)
   };
 }

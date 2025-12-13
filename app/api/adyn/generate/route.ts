@@ -44,35 +44,90 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-      // Execute MCP tool chain
+      // Track module usage with actual token data
+      const moduleUsages: Array<{
+        module: string;
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+        cost: number;
+        callCount: number;
+      }> = [];
+
+      // Execute MCP tool chain with token tracking
       console.log('Fetching URL...');
-      const fetchResult = await mcpManager.callTool('adyn', 'fetch_url', { url });
+      const fetchInput = { url };
+      const fetchResult = await mcpManager.callTool('adyn', 'fetch_url', fetchInput);
       const fetchContent = Array.isArray(fetchResult.content) ? fetchResult.content[0] : fetchResult.content;
-      const html = JSON.parse((fetchContent as { text?: string })?.text || '{}').html;
+      const fetchData = JSON.parse((fetchContent as { text?: string })?.text || '{}');
+      const html = fetchData.html;
+      // fetch_url doesn't use AI, so no tokens
+      moduleUsages.push({
+        module: 'fetch_url',
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        cost: 0,
+        callCount: 1
+      });
 
       console.log('Extracting content...');
-      const extractResult = await mcpManager.callTool('adyn', 'extract_content', { html });
+      const extractInput = { html };
+      const extractResult = await mcpManager.callTool('adyn', 'extract_content', extractInput);
       const extractContent = Array.isArray(extractResult.content) ? extractResult.content[0] : extractResult.content;
       const extracted = JSON.parse((extractContent as { text?: string })?.text || '{}');
+      // extract_content doesn't use AI, so no tokens
+      moduleUsages.push({
+        module: 'extract_content',
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        cost: 0,
+        callCount: 1
+      });
 
       console.log('Analyzing content...');
       const textContent = extracted.text_blocks?.join(' ') || '';
-      const analyzeResult = await mcpManager.callTool('adyn', 'semantic_analyze', { text: textContent });
+      const analyzeInput = { text: textContent };
+      const analyzeResult = await mcpManager.callTool('adyn', 'semantic_analyze', analyzeInput);
       const analyzeContent = Array.isArray(analyzeResult.content) ? analyzeResult.content[0] : analyzeResult.content;
       const analysis = JSON.parse((analyzeContent as { text?: string })?.text || '{}');
+      if (analysis.usage) {
+        const cost = (analysis.usage.promptTokens / 1_000_000 * 2.50) + (analysis.usage.completionTokens / 1_000_000 * 10.00);
+        moduleUsages.push({
+          module: 'semantic_analyze',
+          inputTokens: analysis.usage.promptTokens,
+          outputTokens: analysis.usage.completionTokens,
+          totalTokens: analysis.usage.totalTokens,
+          cost,
+          callCount: 1
+        });
+      }
 
       console.log('Building audience...');
-      const audienceResult = await mcpManager.callTool('adyn', 'audience_builder', {
+      const audienceInput = {
         persona: analysis.audience_persona,
         keywords: analysis.keywords,
         category: analysis.category,
         target_segments: analysis.target_segments
-      });
+      };
+      const audienceResult = await mcpManager.callTool('adyn', 'audience_builder', audienceInput);
       const audienceContent = Array.isArray(audienceResult.content) ? audienceResult.content[0] : audienceResult.content;
       const audience = JSON.parse((audienceContent as { text?: string })?.text || '{}');
+      if (audience.usage) {
+        const cost = (audience.usage.promptTokens / 1_000_000 * 2.50) + (audience.usage.completionTokens / 1_000_000 * 10.00);
+        moduleUsages.push({
+          module: 'audience_builder',
+          inputTokens: audience.usage.promptTokens,
+          outputTokens: audience.usage.completionTokens,
+          totalTokens: audience.usage.totalTokens,
+          cost,
+          callCount: 1
+        });
+      }
 
       console.log('Generating ads...');
-      const adsResult = await mcpManager.callTool('adyn', 'generate_ads', {
+      const adsInput = {
         summary: analysis.summary,
         brand_tone: analysis.brand_tone,
         persona: analysis.audience_persona,
@@ -80,18 +135,42 @@ export async function POST(req: NextRequest) {
         platforms: ['facebook', 'instagram', 'tiktok', 'google'],
         target_segments: analysis.target_segments,
         use_cases: analysis.use_cases
-      });
+      };
+      const adsResult = await mcpManager.callTool('adyn', 'generate_ads', adsInput);
       const adsContent = Array.isArray(adsResult.content) ? adsResult.content[0] : adsResult.content;
       const adsData = JSON.parse((adsContent as { text?: string })?.text || '{}');
+      if (adsData.usage) {
+        const cost = (adsData.usage.promptTokens / 1_000_000 * 2.50) + (adsData.usage.completionTokens / 1_000_000 * 10.00);
+        moduleUsages.push({
+          module: 'generate_ads',
+          inputTokens: adsData.usage.promptTokens,
+          outputTokens: adsData.usage.completionTokens,
+          totalTokens: adsData.usage.totalTokens,
+          cost,
+          callCount: 1
+        });
+      }
 
       console.log('Building campaign...');
-      const campaignResult = await mcpManager.callTool('adyn', 'campaign_builder', {
+      const campaignInput = {
         ads: adsData.ads,
         audience: audience,
         objective: objective || 'Conversions'
-      });
+      };
+      const campaignResult = await mcpManager.callTool('adyn', 'campaign_builder', campaignInput);
       const campaignContent = Array.isArray(campaignResult.content) ? campaignResult.content[0] : campaignResult.content;
       const strategy = JSON.parse((campaignContent as { text?: string })?.text || '{}');
+      if (strategy.usage) {
+        const cost = (strategy.usage.promptTokens / 1_000_000 * 2.50) + (strategy.usage.completionTokens / 1_000_000 * 10.00);
+        moduleUsages.push({
+          module: 'campaign_builder',
+          inputTokens: strategy.usage.promptTokens,
+          outputTokens: strategy.usage.completionTokens,
+          totalTokens: strategy.usage.totalTokens,
+          cost,
+          callCount: 1
+        });
+      }
 
       // Build unified output
       const adynOutput: AdynOutput = {
@@ -121,18 +200,13 @@ export async function POST(req: NextRequest) {
       // Update source status
       await Source.findByIdAndUpdate(source._id, { status: 'completed' });
 
-      // Estimate token usage
-      const { estimateTokens } = await import('@/lib/token-estimator');
-      const inputText = JSON.stringify({ projectId, url, objective });
-      const outputText = JSON.stringify(adynOutput);
-      const promptTokens = estimateTokens(inputText);
-      const completionTokens = estimateTokens(outputText);
-      const totalTokens = promptTokens + completionTokens;
+      // Calculate totals from module usage
+      const totalPromptTokens = moduleUsages.reduce((sum, m) => sum + m.inputTokens, 0);
+      const totalCompletionTokens = moduleUsages.reduce((sum, m) => sum + m.outputTokens, 0);
+      const totalTokens = moduleUsages.reduce((sum, m) => sum + m.totalTokens, 0);
+      const totalCost = moduleUsages.reduce((sum, m) => sum + m.cost, 0);
 
-      // Calculate cost (GPT-4o pricing)
-      const estimatedCost = (promptTokens / 1_000_000 * 2.50) + (completionTokens / 1_000_000 * 10.00);
-
-      // Create generation log
+      // Create generation log with detailed module usage
       await GenerationLog.create({
         userId: session.user.id,
         campaignId: campaign._id,
@@ -140,11 +214,12 @@ export async function POST(req: NextRequest) {
         requestPayload: { projectId, url, objective },
         responsePayload: adynOutput,
         tokensUsed: {
-          prompt: promptTokens,
-          completion: completionTokens,
+          prompt: totalPromptTokens,
+          completion: totalCompletionTokens,
           total: totalTokens
         },
-        estimatedCost
+        moduleUsage: moduleUsages,
+        estimatedCost: totalCost
       });
 
       return NextResponse.json({

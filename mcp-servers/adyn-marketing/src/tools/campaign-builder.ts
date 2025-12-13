@@ -17,6 +17,11 @@ export interface CampaignBuilderOutput {
   duration_days: number;
   platform_mix: string[];
   formats: string[];
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 const schema = z.object({
@@ -55,7 +60,7 @@ Consider:
 - Duration should be realistic (typically 14-60 days)
 - Formats should match the platforms`;
 
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: openai('gpt-4o'),
       schema,
       prompt,
@@ -63,7 +68,14 @@ Consider:
       temperature: 0.7
     });
 
-    return object;
+    return {
+      ...object,
+      usage: usage ? {
+        promptTokens: (usage as any).inputTokens || 0,
+        completionTokens: (usage as any).outputTokens || 0,
+        totalTokens: (usage as any).totalTokens || 0
+      } : undefined
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`AI campaign building failed: ${errorMessage}`);
