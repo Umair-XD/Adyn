@@ -1,0 +1,47 @@
+{
+  "name": "adyn-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm run build:mcp && next build",
+    "build:mcp": "cd mcp-servers/adyn-marketing && npm run build && cd ../adyn-support && npm run build && cd ../..",
+    "start": "next start",
+    "lint": "eslint",
+    "setup": "npm install && npm run build:mcp",
+    "test:mcp": "node test-mcp.js"
+  },
+  "dependencies": {
+    "@ai-sdk/gateway": "^2.0.21",
+    "@hookform/resolvers": "^5.2.2",
+    "@modelcontextprotocol/sdk": "^1.22.0",
+    "ai": "^5.0.108",
+    "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.1",
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^8.19.4",
+    "next": "^16.0.7",
+    "next-auth": "^4.24.13",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-hook-form": "^7.66.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cheerio": "^0.22.35",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}
