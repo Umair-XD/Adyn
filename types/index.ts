@@ -26,9 +26,35 @@ export interface SemanticAnalyzeOutput {
   summary: string;
   keywords: string[];
   value_proposition: string;
+  unique_selling_point: string;
   brand_tone: string;
   audience_persona: string;
   category: string;
+  use_cases: string[];
+  target_segments: Array<{
+    segment: string;
+    description: string;
+    pain_points: string[];
+  }>;
+  geographic_analysis: {
+    origin_country: string;
+    primary_markets: string[];
+    cultural_context: string;
+    local_preferences: string[];
+    regional_competitors: string[];
+  };
+  competitor_analysis: {
+    main_competitors: string[];
+    competitive_advantages: string[];
+    market_positioning: string;
+    differentiation_strategy: string;
+  };
+  market_size_estimation: {
+    total_addressable_market: string;
+    serviceable_addressable_market: string;
+    target_market_size: string;
+    growth_potential: string;
+  };
 }
 
 export interface GenerateAdsInput {
@@ -73,6 +99,44 @@ export interface AudienceBuilderOutput {
   interest_groups: string[];
   geos: string[];
   behaviors: string[];
+  segment_targeting: Array<{
+    segment_name: string;
+    age_range: string;
+    gender: string;
+    interests: string[];
+    behaviors: string[];
+    job_titles: string[];
+    platforms_active_on: string[];
+    best_times_to_reach: string[];
+  }>;
+  broad_audiences: Array<{
+    name: string;
+    description: string;
+    age_range: string;
+    interests: string[];
+    trending_topics: string[];
+    platforms: string[];
+    size_estimate: string;
+    why_trending: string;
+  }>;
+  meta_lookalike_audiences: Array<{
+    source_audience: string;
+    similarity_percentage: string;
+    audience_size: string;
+    description: string;
+    targeting_strategy: string;
+  }>;
+  detailed_interests: Array<{
+    category: string;
+    interests: string[];
+    audience_size_estimate: string;
+  }>;
+  geographic_targeting: {
+    primary_countries: string[];
+    excluded_regions: string[];
+    language_targeting: string[];
+    timezone_considerations: string[];
+  };
 }
 
 export interface CampaignBuilderInput {

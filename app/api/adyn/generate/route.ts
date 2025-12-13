@@ -117,7 +117,8 @@ export async function POST(req: NextRequest) {
         persona: analysis.audience_persona,
         keywords: analysis.keywords,
         category: analysis.category,
-        target_segments: analysis.target_segments
+        target_segments: analysis.target_segments,
+        geographic_analysis: analysis.geographic_analysis
       };
       const audienceResult = await mcpManager.callTool('adyn', 'audience_builder', audienceInput);
       const audienceContent = Array.isArray(audienceResult.content) ? audienceResult.content[0] : audienceResult.content;

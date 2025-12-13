@@ -202,6 +202,16 @@ export default function CampaignDetailPage() {
                   <p className="text-gray-900 mt-1">{result.product_summary.summary}</p>
                 </div>
                 <div>
+                  <p className="text-sm font-medium text-gray-700">Value Proposition</p>
+                  <p className="text-gray-900 mt-1">{result.product_summary.value_proposition}</p>
+                </div>
+                {result.product_summary.unique_selling_point && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Unique Selling Point</p>
+                    <p className="text-gray-900 mt-1 font-medium">{result.product_summary.unique_selling_point}</p>
+                  </div>
+                )}
+                <div>
                   <p className="text-sm font-medium text-gray-700">Brand Tone</p>
                   <p className="text-gray-900 mt-1 capitalize">{result.product_summary.brand_tone}</p>
                 </div>
@@ -210,15 +220,106 @@ export default function CampaignDetailPage() {
                   <p className="text-gray-900 mt-1 capitalize">{result.product_summary.category}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Value Proposition</p>
-                  <p className="text-gray-900 mt-1">{result.product_summary.value_proposition}</p>
-                </div>
-                <div>
                   <p className="text-sm font-medium text-gray-700">Target Persona</p>
                   <p className="text-gray-900 mt-1">{result.product_summary.audience_persona}</p>
                 </div>
               </div>
             </div>
+
+            {/* Geographic Analysis */}
+            {result.product_summary.geographic_analysis && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Geographic Analysis</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Origin Country</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">{result.product_summary.geographic_analysis.origin_country}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Primary Markets</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.product_summary.geographic_analysis.primary_markets?.map((market, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                          {market}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Cultural Context</p>
+                    <p className="text-gray-900 mt-1">{result.product_summary.geographic_analysis.cultural_context}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Local Preferences</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {result.product_summary.geographic_analysis.local_preferences?.map((pref, idx) => (
+                        <li key={idx} className="text-sm text-gray-900">{pref}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Competitor Analysis */}
+            {result.product_summary.competitor_analysis && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Competitor Analysis</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Main Competitors</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.product_summary.competitor_analysis.main_competitors?.map((competitor, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
+                          {competitor}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Competitive Advantages</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {result.product_summary.competitor_analysis.competitive_advantages?.map((advantage, idx) => (
+                        <li key={idx} className="text-sm text-gray-900">{advantage}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Market Positioning</p>
+                    <p className="text-gray-900 mt-1">{result.product_summary.competitor_analysis.market_positioning}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Differentiation Strategy</p>
+                    <p className="text-gray-900 mt-1">{result.product_summary.competitor_analysis.differentiation_strategy}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Market Size Estimation */}
+            {result.product_summary.market_size_estimation && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Market Size Estimation</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-blue-700">Total Addressable Market</p>
+                    <p className="text-xl font-bold text-blue-900 mt-1">{result.product_summary.market_size_estimation.total_addressable_market}</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-green-700">Serviceable Addressable Market</p>
+                    <p className="text-xl font-bold text-green-900 mt-1">{result.product_summary.market_size_estimation.serviceable_addressable_market}</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-purple-700">Target Market Size</p>
+                    <p className="text-xl font-bold text-purple-900 mt-1">{result.product_summary.market_size_estimation.target_market_size}</p>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-orange-700">Growth Potential</p>
+                    <p className="text-lg font-semibold text-orange-900 mt-1">{result.product_summary.market_size_estimation.growth_potential}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {result.product_summary.keywords && result.product_summary.keywords.length > 0 && (
               <div>
@@ -324,6 +425,8 @@ export default function CampaignDetailPage() {
         {activeTab === 'audience' && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Audience Targeting</h2>
+            
+            {/* Basic Targeting */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Age Range</p>
@@ -364,6 +467,83 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Meta Lookalike Audiences */}
+            {result.audience_targeting.meta_lookalike_audiences && result.audience_targeting.meta_lookalike_audiences.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Meta Lookalike Audiences</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {result.audience_targeting.meta_lookalike_audiences.map((lookalike, idx) => (
+                    <div key={idx} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-blue-900">{lookalike.source_audience}</h4>
+                        <span className="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs font-medium">
+                          {lookalike.similarity_percentage}
+                        </span>
+                      </div>
+                      <p className="text-sm text-blue-700 mb-2">{lookalike.description}</p>
+                      <div className="text-xs text-blue-600">
+                        <p><strong>Size:</strong> {lookalike.audience_size}</p>
+                        <p><strong>Strategy:</strong> {lookalike.targeting_strategy}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Detailed Interests by Category */}
+            {result.audience_targeting.detailed_interests && result.audience_targeting.detailed_interests.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Detailed Interest Targeting</h3>
+                <div className="space-y-4">
+                  {result.audience_targeting.detailed_interests.map((category, idx) => (
+                    <div key={idx} className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium text-gray-900">{category.category}</h4>
+                        <span className="text-sm text-gray-600">{category.audience_size_estimate}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {category.interests.map((interest, i) => (
+                          <span key={i} className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
+                            {interest}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Geographic Targeting */}
+            {result.audience_targeting.geographic_targeting && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Geographic Targeting</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Primary Countries</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.audience_targeting.geographic_targeting.primary_countries?.map((country, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                          {country}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Language Targeting</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.audience_targeting.geographic_targeting.language_targeting?.map((lang, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
