@@ -80,17 +80,12 @@ const schema = z.object({
 
 export async function audienceBuilder(input: AudienceBuilderInput): Promise<AudienceBuilderOutput> {
   try {
-    const currentDate = new Date().toISOString().split('T')[0];
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-    const currentYear = new Date().getFullYear();
-
     const prompt = `You are an audience targeting expert with deep knowledge of current trends and viral content. Create detailed audience targeting parameters.
 
 Product Category: ${input.category}
 Primary Persona: ${input.persona}
 Keywords: ${input.keywords.join(', ')}
 Target Segments: ${JSON.stringify(input.target_segments || [])}
-Current Date: ${currentDate} (${currentMonth} ${currentYear})
 
 Create comprehensive audience targeting that includes:
 
@@ -119,11 +114,12 @@ For each broad audience, explain:
 - Which platforms they're most active on
 - How this product fits their current interests
 
-Example broad audiences for ${currentMonth} ${currentYear}:
-- "AI Productivity Enthusiasts" (trending due to ChatGPT/AI boom)
-- "Remote Work Optimizers" (trending due to hybrid work culture)
-- "Sustainable Living Advocates" (trending due to climate awareness)
-- "Mental Health & Wellness Seekers" (trending due to post-pandemic focus)
+Use your current knowledge to identify trending audiences like:
+- AI/Tech enthusiasts and early adopters
+- Remote work and productivity optimizers
+- Wellness and mental health focused communities
+- Sustainable living advocates
+- Creator economy participants
 
 Return valid JSON with all fields filled.`;
 

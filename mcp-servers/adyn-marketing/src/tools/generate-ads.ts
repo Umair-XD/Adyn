@@ -69,8 +69,6 @@ const schema = z.object({
 
 export async function generateAds(input: GenerateAdsInput): Promise<GenerateAdsOutput> {
   try {
-    const currentDate = new Date().toISOString().split('T')[0];
-    
     const prompt = `You are a creative advertising expert with deep knowledge of viral content, current trends, and platform algorithms. Generate platform-specific ad creatives that are highly engaging and trend-aware.
 
 Product Summary: ${input.summary}
@@ -80,17 +78,7 @@ Use Cases: ${input.use_cases?.join(', ') || 'N/A'}
 Target Segments: ${JSON.stringify(input.target_segments || [])}
 Platforms: ${input.platforms.join(', ')}
 
-Current Date: ${currentDate} - CRITICAL: Consider December 2024 trends, holiday season, year-end themes, New Year resolutions prep, winter season, and current viral content patterns.
-
-TRENDING CONTEXT FOR DECEMBER 2024:
-- Holiday shopping fatigue, post-Black Friday mindset
-- New Year resolution planning and goal-setting content
-- Winter wellness and productivity themes
-- AI productivity tools trending heavily
-- "Winter arc" fitness/self-improvement trend
-- Year-end reflection and 2025 planning content
-- Cozy/hygge lifestyle content performing well
-- Short-form video content dominating (15-30 seconds optimal)
+CRITICAL: Use your current knowledge of trends, seasonal context, viral content patterns, and cultural moments. Consider what's trending RIGHT NOW in social media, current events, seasonal psychology, and platform-specific content that's performing well.
 
 For EACH combination of platform and target segment, create HIGHLY ENGAGING ad creatives that:
 1. Hook viewers in the first 3 seconds with trending formats
@@ -113,7 +101,7 @@ Return a JSON object with an "ads" array. Each ad should have:
   - primary_interests: Core product-related interests (8-12 very specific interests)
   - secondary_interests: Lifestyle/behavior interests that correlate (8-12 interests)
   - behavioral_interests: Purchase behaviors, app usage, engagement patterns (5-8 behaviors)
-  - trending_interests: December 2024 trending topics/viral content themes (5-8 current trends)
+  - trending_interests: Current trending topics/viral content themes (5-8 current trends)
   - lookalike_audiences: Suggest competitor audiences or similar successful brands to target
   - demographic_insights: Age, gender, location, income insights for this creative
 
