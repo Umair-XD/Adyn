@@ -42,14 +42,6 @@ export interface BroadAudience {
   why_trending: string;
 }
 
-export interface MetaLookalikeAudience {
-  source_audience: string;
-  similarity_percentage: string;
-  audience_size: string;
-  description: string;
-  targeting_strategy: string;
-}
-
 export interface DetailedInterests {
   category: string;
   interests: string[];
@@ -63,14 +55,7 @@ export interface AudienceBuilderOutput {
   behaviors: string[];
   segment_targeting: SegmentTargeting[];
   broad_audiences: BroadAudience[];
-  meta_lookalike_audiences: MetaLookalikeAudience[];
   detailed_interests: DetailedInterests[];
-  geographic_targeting: {
-    primary_countries: string[];
-    excluded_regions: string[];
-    language_targeting: string[];
-    timezone_considerations: string[];
-  };
   usage?: {
     promptTokens: number;
     completionTokens: number;
@@ -105,24 +90,11 @@ const schema = z.object({
     size_estimate: z.string(),
     why_trending: z.string()
   })),
-  meta_lookalike_audiences: z.array(z.object({
-    source_audience: z.string(),
-    similarity_percentage: z.string(),
-    audience_size: z.string(),
-    description: z.string(),
-    targeting_strategy: z.string()
-  })),
   detailed_interests: z.array(z.object({
     category: z.string(),
     interests: z.array(z.string()),
     audience_size_estimate: z.string()
-  })),
-  geographic_targeting: z.object({
-    primary_countries: z.array(z.string()),
-    excluded_regions: z.array(z.string()),
-    language_targeting: z.array(z.string()),
-    timezone_considerations: z.array(z.string())
-  })
+  }))
 });
 
 export async function audienceBuilder(input: AudienceBuilderInput): Promise<AudienceBuilderOutput> {
@@ -137,7 +109,8 @@ Geographic Context: ${JSON.stringify(input.geographic_analysis || {})}
 
 Create comprehensive audience targeting that includes:
 
-1. OVERALL BROAD TARGETING (age_range, interest_groups, geos, behaviors)
+1. OVERALL BROAD TARGETING (age_range, interest_groups, geos, behaviors):
+   - geos: If the product is from Pakistan, provide major Pakistani cities (Karachi, Lahore, Islamabad, Faisalabad, Rawalpindi, Peshawar, Quetta, Multan, etc.). If not from Pakistan, provide relevant countries.
 
 2. SEGMENT-SPECIFIC TARGETING for each target segment with:
    - Specific age ranges for that segment
@@ -155,6 +128,7 @@ Create comprehensive audience targeting that includes:
    - Focus on audiences that are actively engaging with related content NOW
    - Consider TikTok trends, Instagram reels trends, Twitter/X conversations
    - Include size estimates (e.g., "2-5 million", "500K-1M", "10M+")
+   - Make these broad but still narrowed according to the specific product
 
 For each broad audience, explain:
 - Why they're trending right now
@@ -162,27 +136,17 @@ For each broad audience, explain:
 - Which platforms they're most active on
 - How this product fits their current interests
 
-4. META LOOKALIKE AUDIENCES (5-7 precise lookalike audiences):
-   Use Meta's audience library knowledge to create highly specific lookalike audiences:
-   - source_audience: The source audience for lookalike (e.g., "Website visitors who purchased", "Email subscribers", "App users")
-   - similarity_percentage: Lookalike percentage (1%, 2%, 5%, 10%)
-   - audience_size: Estimated audience size in target country
-   - description: What makes this lookalike audience valuable
-   - targeting_strategy: How to use this audience effectively
-
-5. DETAILED INTERESTS (by category):
+4. DETAILED INTERESTS (by category):
    Organize interests by Meta's interest categories with precise targeting:
    - category: Meta interest category (e.g., "Business and Industry", "Technology", "Shopping and Fashion")
    - interests: Array of specific interests from Meta's library (be very precise)
    - audience_size_estimate: Estimated reach for this interest group
 
-6. GEOGRAPHIC TARGETING:
-   - primary_countries: Main countries to target. If the product originates from Pakistan, prioritize Pakistan first, then similar regional markets (India, Bangladesh, UAE, etc.)
-   - excluded_regions: Regions to exclude (if any)
-   - language_targeting: Languages to target (for Pakistani products, include Urdu, English, and relevant regional languages)
-   - timezone_considerations: Best times to reach audience in each region (for Pakistan, consider PKT timezone)
-
 CRITICAL: Use Meta's actual interest categories and targeting options. Be extremely specific with interest names as they appear in Facebook Ads Manager. Consider cultural nuances and local market preferences.
+
+IMPORTANT FOR PAKISTANI PRODUCTS:
+- If origin_country is Pakistan, ensure geos contains Pakistani cities, not countries
+- Focus on broad audiences that are still narrowed according to the specific product
 
 Examples of precise Meta interests:
 - Instead of "Technology": "Artificial intelligence", "Software engineering", "Cloud computing"

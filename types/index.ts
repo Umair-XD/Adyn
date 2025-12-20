@@ -119,24 +119,11 @@ export interface AudienceBuilderOutput {
     size_estimate: string;
     why_trending: string;
   }>;
-  meta_lookalike_audiences: Array<{
-    source_audience: string;
-    similarity_percentage: string;
-    audience_size: string;
-    description: string;
-    targeting_strategy: string;
-  }>;
   detailed_interests: Array<{
     category: string;
     interests: string[];
     audience_size_estimate: string;
   }>;
-  geographic_targeting: {
-    primary_countries: string[];
-    excluded_regions: string[];
-    language_targeting: string[];
-    timezone_considerations: string[];
-  };
 }
 
 export interface CampaignBuilderInput {

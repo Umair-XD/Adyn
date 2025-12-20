@@ -443,10 +443,12 @@ export default function CampaignDetailPage() {
                 <p className="text-gray-900">{result.audience_targeting.age_range}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Geographic Locations</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">Primary Market Primary City Targeting</p>
                 <div className="space-y-1">
-                  {result.audience_targeting.geos?.map((geo, idx) => (
-                    <p key={idx} className="text-gray-900">{geo}</p>
+                  {result.product_summary.geographic_analysis.primary_markets?.map((market, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm mr-2 mb-2 inline-block">
+                      {market}
+                    </span>
                   )) || <p className="text-gray-500">No locations specified</p>}
                 </div>
               </div>
@@ -478,30 +480,6 @@ export default function CampaignDetailPage() {
               </div>
             </div>
 
-            {/* Meta Lookalike Audiences */}
-            {result.audience_targeting.meta_lookalike_audiences && result.audience_targeting.meta_lookalike_audiences.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Meta Lookalike Audiences</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.audience_targeting.meta_lookalike_audiences.map((lookalike, idx) => (
-                    <div key={idx} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium text-blue-900">{lookalike.source_audience}</h4>
-                        <span className="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs font-medium">
-                          {lookalike.similarity_percentage}
-                        </span>
-                      </div>
-                      <p className="text-sm text-blue-700 mb-2">{lookalike.description}</p>
-                      <div className="text-xs text-blue-600">
-                        <p><strong>Size:</strong> {lookalike.audience_size}</p>
-                        <p><strong>Strategy:</strong> {lookalike.targeting_strategy}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Detailed Interests by Category */}
             {result.audience_targeting.detailed_interests && result.audience_targeting.detailed_interests.length > 0 && (
               <div>
@@ -522,35 +500,6 @@ export default function CampaignDetailPage() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Geographic Targeting */}
-            {result.audience_targeting.geographic_targeting && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Geographic Targeting</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Primary Countries</p>
-                    <div className="flex flex-wrap gap-2">
-                      {result.audience_targeting.geographic_targeting.primary_countries?.map((country, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                          {country}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Language Targeting</p>
-                    <div className="flex flex-wrap gap-2">
-                      {result.audience_targeting.geographic_targeting.language_targeting?.map((lang, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
-                          {lang}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
