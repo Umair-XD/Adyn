@@ -177,10 +177,10 @@ For each broad audience, explain:
    - audience_size_estimate: Estimated reach for this interest group
 
 6. GEOGRAPHIC TARGETING:
-   - primary_countries: Main countries to target (prioritize origin country and similar markets)
+   - primary_countries: Main countries to target. If the product originates from Pakistan, prioritize Pakistan first, then similar regional markets (India, Bangladesh, UAE, etc.)
    - excluded_regions: Regions to exclude (if any)
-   - language_targeting: Languages to target
-   - timezone_considerations: Best times to reach audience in each region
+   - language_targeting: Languages to target (for Pakistani products, include Urdu, English, and relevant regional languages)
+   - timezone_considerations: Best times to reach audience in each region (for Pakistan, consider PKT timezone)
 
 CRITICAL: Use Meta's actual interest categories and targeting options. Be extremely specific with interest names as they appear in Facebook Ads Manager. Consider cultural nuances and local market preferences.
 

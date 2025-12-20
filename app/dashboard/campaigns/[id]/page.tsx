@@ -236,7 +236,7 @@ export default function CampaignDetailPage() {
                     <p className="text-lg font-semibold text-gray-900 mt-1">{result.product_summary.geographic_analysis.origin_country}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Primary Markets</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Primary Market Primary City Targeting</p>
                     <div className="flex flex-wrap gap-2">
                       {result.product_summary.geographic_analysis.primary_markets?.map((market, idx) => (
                         <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
@@ -256,6 +256,16 @@ export default function CampaignDetailPage() {
                         <li key={idx} className="text-sm text-gray-900">{pref}</li>
                       ))}
                     </ul>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Regional Competitors</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.product_summary.geographic_analysis.regional_competitors?.map((competitor, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
+                          {competitor}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

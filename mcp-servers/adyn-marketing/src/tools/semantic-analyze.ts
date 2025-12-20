@@ -105,13 +105,13 @@ Provide a JSON response with:
 
 10. geographic_analysis: Geographic and cultural analysis:
     - origin_country: Country/region where the product originates (e.g., "United States", "Germany", "Japan")
-    - primary_markets: Array of 3-5 primary target countries/regions for marketing
+    - primary_markets: If origin_country is Pakistan, provide 3-5 major Pakistani cities (e.g., "Karachi", "Lahore", "Islamabad", "Faisalabad", "Rawalpindi"). If origin_country is not Pakistan, provide 3-5 primary target countries/regions for marketing
     - cultural_context: Cultural factors that influence product appeal
     - local_preferences: Array of region-specific preferences and behaviors
-    - regional_competitors: Local competitors in the origin country/region
+    - regional_competitors: Local competitors in the origin country/region (if Pakistan, focus on Pakistani competitors)
 
 11. competitor_analysis: Comprehensive competitive landscape analysis:
-    - main_competitors: Array of 5-8 direct and indirect competitors (brands/companies)
+    - main_competitors: Array of 5-8 direct and indirect competitors. If the product is from Pakistan (origin_country is Pakistan), prioritize Pakistani local competitors first, then regional competitors from similar markets (India, Bangladesh, etc.), then global competitors. If not from Pakistan, focus on competitors in the origin country and target markets.
     - competitive_advantages: Array of 3-5 key advantages over competitors
     - market_positioning: How this product should be positioned vs competitors (premium, budget, niche, etc.)
     - differentiation_strategy: Strategy to stand out from competitors
@@ -122,7 +122,15 @@ Provide a JSON response with:
     - target_market_size: Initial target market size (e.g., "$50M", "500K users in first year")
     - growth_potential: Market growth trends and potential (e.g., "Growing 15% annually", "Emerging market with high potential")
 
-Be specific and research-backed. Use your knowledge of market data, competitor landscapes, and industry trends to provide realistic estimates and insights.`;
+Be specific and research-backed. Use your knowledge of market data, competitor landscapes, and industry trends to provide realistic estimates and insights.
+
+IMPORTANT: If the product appears to be from Pakistan (based on content analysis), ensure:
+- origin_country is set to "Pakistan"
+- primary_markets focuses on major Pakistani cities (Karachi, Lahore, Islamabad, Faisalabad, Rawalpindi, Peshawar, Quetta, Multan, etc.)
+- regional_competitors includes Pakistani local competitors
+- main_competitors prioritizes Pakistani brands and companies first, then regional (South Asian) competitors
+- cultural_context reflects Pakistani cultural values and preferences
+- local_preferences includes Pakistani consumer behaviors and preferences`;
 
     const { object, usage } = await generateObject({
       model: openai('gpt-4o'),
