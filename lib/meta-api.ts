@@ -135,10 +135,45 @@ export class MetaAPIClient {
       fields: 'event_name,count,unique_count'
     };
     
-    if (startDate) params.time_range = { since: startDate, until: endDate || new Date().toISOString().split('T')[0] };
+    if (startDate) {
+      params.time_range = JSON.stringify({ 
+        since: startDate, 
+        until: endDate || new Date().toISOString().split('T')[0] 
+      });
+    }
     
-    const response = await this.makeRequest(`${pixelId}/stats`, 'GET', params);
+    // Use the correct endpoint for pixel events
+    const response = await this.makeRequest(`${pixelId}/events`, 'GET', params);
     return response.data;
+  }
+
+  // Alternative method to get pixel insights
+  async getPixelInsights(pixelId: string, startDate?: string, endDate?: string): Promise<any> {
+    const params: any = {
+      fields: 'event_name,count,unique_count,cost_per_action_type'
+    };
+    
+    if (startDate) {
+      params.time_range = JSON.stringify({ 
+        since: startDate, 
+        until: endDate || new Date().toISOString().split('T')[0] 
+      });
+    }
+    
+    try {
+      // Try the insights endpoint first
+      const response = await this.makeRequest(`${pixelId}/insights`, 'GET', params);
+      return response.data;
+    } catch (error) {
+      // Fallback to stats endpoint
+      try {
+        const response = await this.makeRequest(`${pixelId}/stats`, 'GET', params);
+        return response.data;
+      } catch (fallbackError) {
+        console.error('Both pixel endpoints failed:', error, fallbackError);
+        return [];
+      }
+    }
   }
 
   // Campaign Management
@@ -232,6 +267,101 @@ export class MetaAPIClient {
     
     const response = await this.makeRequest(`${adSetId}/insights`, 'GET', params);
     return response.data[0] || {};
+  }
+
+  // Enhanced Historical Insights Methods
+  async getHistoricalCampaignInsights(accountId: string, options?: {
+    dateRange?: { since: string; until: string };
+    limit?: number;
+    level?: 'campaign' | 'adset' | 'ad';
+    breakdowns?: string[];
+    actionBreakdowns?: string[];
+  }): Promise<any[]> {
+    const params: any = {
+      fields: 'campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type,cost_per_conversion,objective,optimization_goal,targeting',
+      level: options?.level || 'campaign',
+      limit: options?.limit || 100
+    };
+    
+    if (options?.dateRange) {
+      params.time_range = options.dateRange;
+    }
+    
+    if (options?.breakdowns) {
+      params.breakdowns = options.breakdowns.join(',');
+    }
+    
+    if (options?.actionBreakdowns) {
+      params.action_breakdowns = options.actionBreakdowns.join(',');
+    }
+    
+    const response = await this.makeRequest(`act_${accountId}/insights`, 'GET', params);
+    return response.data || [];
+  }
+
+  async getAdInsights(adId: string, dateRange?: { since: string; until: string }): Promise<MetaInsights> {
+    const params: any = {
+      fields: 'impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type'
+    };
+    
+    if (dateRange) {
+      params.time_range = dateRange;
+    }
+    
+    const response = await this.makeRequest(`${adId}/insights`, 'GET', params);
+    return response.data[0] || {};
+  }
+
+  async getTopPerformingAds(accountId: string, options?: {
+    dateRange?: { since: string; until: string };
+    metric?: 'ctr' | 'cpc' | 'cpm' | 'roas' | 'conversions';
+    limit?: number;
+    objective?: string;
+  }): Promise<any[]> {
+    const params: any = {
+      fields: 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type,creative,targeting',
+      level: 'ad',
+      limit: options?.limit || 50,
+      sort: [`${options?.metric || 'ctr'}:descending`]
+    };
+    
+    if (options?.dateRange) {
+      params.time_range = options.dateRange;
+    }
+    
+    if (options?.objective) {
+      params.filtering = JSON.stringify([{
+        field: 'objective',
+        operator: 'EQUAL',
+        value: options.objective
+      }]);
+    }
+    
+    const response = await this.makeRequest(`act_${accountId}/insights`, 'GET', params);
+    return response.data || [];
+  }
+
+  async getAudienceInsights(accountId: string, options?: {
+    dateRange?: { since: string; until: string };
+    breakdowns?: ('age' | 'gender' | 'country' | 'region' | 'dma' | 'impression_device' | 'platform_position')[];
+    limit?: number;
+  }): Promise<any[]> {
+    const params: any = {
+      fields: 'impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,conversions',
+      level: 'adset',
+      limit: options?.limit || 100
+    };
+    
+    if (options?.dateRange) {
+      params.time_range = options.dateRange;
+    }
+    
+    if (options?.breakdowns) {
+      params.breakdowns = options.breakdowns.join(',');
+    }
+    
+    const response = await this.makeRequest(`act_${accountId}/insights`, 'GET', params);
+    return response.data || [];
   }
 
   // Rules and Automation

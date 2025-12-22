@@ -40,13 +40,41 @@ export async function GET(req: NextRequest) {
 
     if (pixelId) {
       // Get pixel events data
-      const pixelEvents = await metaClient.getPixelEvents(pixelId, startDate || undefined, endDate || undefined);
-      
-      return NextResponse.json({ 
-        pixelId,
-        events: pixelEvents,
-        dateRange: { startDate, endDate }
-      });
+      try {
+        // Try to get pixel insights first (more detailed)
+        const pixelEvents = await metaClient.getPixelInsights(pixelId, startDate || undefined, endDate || undefined);
+        
+        return NextResponse.json({ 
+          pixelId,
+          events: pixelEvents,
+          dateRange: { startDate, endDate },
+          source: 'insights'
+        });
+      } catch (error) {
+        console.error('Failed to get pixel insights, trying events endpoint:', error);
+        
+        try {
+          // Fallback to basic events
+          const pixelEvents = await metaClient.getPixelEvents(pixelId, startDate || undefined, endDate || undefined);
+          
+          return NextResponse.json({ 
+            pixelId,
+            events: pixelEvents,
+            dateRange: { startDate, endDate },
+            source: 'events'
+          });
+        } catch (fallbackError) {
+          console.error('Both pixel endpoints failed:', fallbackError);
+          
+          return NextResponse.json({ 
+            pixelId,
+            events: [],
+            dateRange: { startDate, endDate },
+            error: 'Unable to fetch pixel data. This may be due to insufficient permissions or no recent pixel activity.',
+            source: 'none'
+          });
+        }
+      }
     } else {
       // Get all pixels for the account
       const pixels = await metaClient.getPixels(accountId);
