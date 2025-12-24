@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 interface MetaAccount {
   _id: string;
   accountId: string;
   accountName: string;
+  businessId?: string;
+  businessName?: string;
+  portfolioId?: string;
+  portfolioName?: string;
   currency: string;
   timezoneName: string;
   accountStatus: number;
@@ -43,7 +47,7 @@ interface MetaAd {
   name: string;
   adset_id: string;
   status: string;
-  creative: Record<string, any>;
+  creative: Record<string, unknown>;
   created_time: string;
   insights?: {
     impressions: string;
@@ -146,7 +150,7 @@ function WinningAdsAnalysis({ ads }: { ads: MetaAd[] }) {
           <div className="bg-white rounded-lg p-4 border border-green-200">
             <h4 className="font-semibold text-green-700 mb-3">🎯 Highest CTR</h4>
             <div className="space-y-3">
-              {analysis.topCTR.map((ad, idx) => {
+              {analysis.topCTR.map((ad) => {
                 const data = extractWinningElements(ad);
                 return (
                   <div key={ad.id} className="border-l-4 border-green-400 pl-3">
@@ -162,7 +166,7 @@ function WinningAdsAnalysis({ ads }: { ads: MetaAd[] }) {
           <div className="bg-white rounded-lg p-4 border border-blue-200">
             <h4 className="font-semibold text-blue-700 mb-3">💰 Most Conversions</h4>
             <div className="space-y-3">
-              {analysis.topConversions.map((ad, idx) => {
+              {analysis.topConversions.map((ad) => {
                 const data = extractWinningElements(ad);
                 return (
                   <div key={ad.id} className="border-l-4 border-blue-400 pl-3">
@@ -178,7 +182,7 @@ function WinningAdsAnalysis({ ads }: { ads: MetaAd[] }) {
           <div className="bg-white rounded-lg p-4 border border-purple-200">
             <h4 className="font-semibold text-purple-700 mb-3">💎 Lowest CPC</h4>
             <div className="space-y-3">
-              {analysis.lowestCPC.map((ad, idx) => {
+              {analysis.lowestCPC.map((ad) => {
                 const data = extractWinningElements(ad);
                 return (
                   <div key={ad.id} className="border-l-4 border-purple-400 pl-3">
@@ -229,11 +233,7 @@ function PixelCard({ pixel, accountId }: PixelCardProps) {
     endDate: new Date().toISOString().split('T')[0] // today
   });
 
-  useEffect(() => {
-    fetchPixelEvents();
-  }, [dateRange]);
-
-  const fetchPixelEvents = async () => {
+  const fetchPixelEvents = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -255,7 +255,11 @@ function PixelCard({ pixel, accountId }: PixelCardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accountId, pixel.id, dateRange.startDate, dateRange.endDate]);
+
+  useEffect(() => {
+    fetchPixelEvents();
+  }, [fetchPixelEvents]);
 
   const totalEvents = pixelEvents.reduce((sum, event) => sum + event.count, 0);
   const totalUniqueEvents = pixelEvents.reduce((sum, event) => sum + event.unique_count, 0);
@@ -447,6 +451,20 @@ export default function MetaDashboard() {
     endDate: new Date().toISOString().split('T')[0]
   });
 
+  const fetchAds = useCallback(async (accountId: string) => {
+    setAdsLoading(true);
+    try {
+      const response = await fetch(`/api/meta/ads?accountId=${accountId}&insights=true&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      const data = await response.json();
+      setAds(data.ads || []);
+    } catch (error) {
+      console.error('Failed to fetch ads:', error);
+      setAds([]);
+    } finally {
+      setAdsLoading(false);
+    }
+  }, [dateRange.startDate, dateRange.endDate]);
+
   useEffect(() => {
     fetchAccounts();
   }, []);
@@ -458,7 +476,7 @@ export default function MetaDashboard() {
         fetchAds(selectedAccount);
       }
     }
-  }, [selectedAccount, activeTab, dateRange]);
+  }, [selectedAccount, activeTab, dateRange, fetchAds]);
 
   const fetchAccounts = async () => {
     try {
@@ -482,20 +500,6 @@ export default function MetaDashboard() {
       setCampaigns(data.campaigns || []);
     } catch (error) {
       console.error('Failed to fetch campaigns:', error);
-    }
-  };
-
-  const fetchAds = async (accountId: string) => {
-    setAdsLoading(true);
-    try {
-      const response = await fetch(`/api/meta/ads?accountId=${accountId}&insights=true&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
-      const data = await response.json();
-      setAds(data.ads || []);
-    } catch (error) {
-      console.error('Failed to fetch ads:', error);
-      setAds([]);
-    } finally {
-      setAdsLoading(false);
     }
   };
 
@@ -560,60 +564,119 @@ export default function MetaDashboard() {
 
       {accounts.length > 0 ? (
         <>
-          {/* Account Selector */}
+          {/* Account Selector with Business/Portfolio Structure */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Accounts</h2>
-            <div className="space-y-3">
-              {accounts.map((account) => (
-                <div
-                  key={account._id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    selectedAccount === account.accountId
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setSelectedAccount(account.accountId)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{account.accountName}</h3>
-                      <p className="text-sm text-gray-600">ID: {account.accountId}</p>
-                      <p className="text-sm text-gray-600">
-                        {account.currency} • {account.timezoneName}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {account.pixels.length} pixel(s) • Last sync: {account.lastSyncAt ? new Date(account.lastSyncAt).toLocaleDateString() : 'Never'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        account.accountStatus === 1 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
-                      }`}>
-                        {account.accountStatus === 1 ? 'Active' : 'Inactive'}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          disconnectAccount(account.accountId);
-                        }}
-                        className="text-red-600 hover:text-red-700 text-sm"
-                      >
-                        Disconnect
-                      </button>
-                    </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Business Accounts</h2>
+            
+            {/* Group accounts by business and portfolio */}
+            {(() => {
+              const groupedAccounts = accounts.reduce((groups, account) => {
+                const businessKey = account.businessId || 'personal';
+                const portfolioKey = account.portfolioId || 'direct';
+                
+                if (!groups[businessKey]) {
+                  groups[businessKey] = {
+                    businessName: account.businessName || 'Personal Accounts',
+                    portfolios: {}
+                  };
+                }
+                
+                if (!groups[businessKey].portfolios[portfolioKey]) {
+                  groups[businessKey].portfolios[portfolioKey] = {
+                    portfolioName: account.portfolioName || 'Direct Ad Accounts',
+                    accounts: []
+                  };
+                }
+                
+                groups[businessKey].portfolios[portfolioKey].accounts.push(account);
+                return groups;
+              }, {} as Record<string, {
+                businessName: string;
+                portfolios: Record<string, {
+                  portfolioName: string;
+                  accounts: typeof accounts;
+                }>;
+              }>);
+
+              return Object.entries(groupedAccounts).map(([businessKey, businessData]) => (
+                <div key={businessKey} className="mb-6">
+                  {/* Business Header */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 114 0 2 2 0 01-4 0zm8-1a1 1 0 100 2h2a1 1 0 100-2h-2z" clipRule="evenodd" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-blue-900">{businessData.businessName}</h3>
                   </div>
+
+                  {/* Portfolios */}
+                  {Object.entries(businessData.portfolios).map(([portfolioKey, portfolioData]: [string, { portfolioName: string; accounts: MetaAccount[] }]) => (
+                    <div key={portfolioKey} className="ml-4 mb-4">
+                      {/* Portfolio Header */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                        </svg>
+                        <h4 className="font-medium text-purple-800">{portfolioData.portfolioName}</h4>
+                        <span className="text-xs text-gray-500">({portfolioData.accounts.length} accounts)</span>
+                      </div>
+
+                      {/* Ad Accounts */}
+                      <div className="ml-6 space-y-2">
+                        {portfolioData.accounts.map((account: MetaAccount) => (
+                          <div
+                            key={account._id}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                              selectedAccount === account.accountId
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => setSelectedAccount(account.accountId)}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h5 className="font-medium text-gray-900">{account.accountName}</h5>
+                                <p className="text-sm text-gray-600">ID: {account.accountId}</p>
+                                <p className="text-sm text-gray-600">
+                                  {account.currency} • {account.timezoneName}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  {account.pixels.length} pixel(s) • Last sync: {account.lastSyncAt ? new Date(account.lastSyncAt).toLocaleDateString() : 'Never'}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  account.accountStatus === 1 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {account.accountStatus === 1 ? 'Active' : 'Inactive'}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    disconnectAccount(account.accountId);
+                                  }}
+                                  className="text-red-600 hover:text-red-700 text-sm"
+                                >
+                                  Disconnect
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              ));
+            })()}
             
             <button
               onClick={connectMetaAccount}
               disabled={connecting}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 text-sm"
             >
-              Connect Another Account
+              Connect Another Business Account
             </button>
           </div>
 

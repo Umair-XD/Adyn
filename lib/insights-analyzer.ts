@@ -1,2 +1,2 @@
-import HistoricalInsights, { IHistoricalInsights } from '@/models/HistoricalInsights';
-import MetaAPIClient from './me
+// Placeholder for insights analyzer functionality
+// TODO: Implement insights analysis features

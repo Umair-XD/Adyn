@@ -163,14 +163,22 @@ Return valid JSON with all fields filled.`;
       temperature: 0.7
     });
 
+    const usageData = usage as {
+      inputTokens?: number;
+      outputTokens?: number;
+      totalTokens?: number;
+      reasoningTokens?: number;
+      cachedInputTokens?: number;
+    };
+
     return {
       ...object,
       usage: usage ? {
-        promptTokens: (usage as any).inputTokens || 0,
-        completionTokens: (usage as any).outputTokens || 0,
-        totalTokens: (usage as any).totalTokens || 0,
-        reasoningTokens: (usage as any).reasoningTokens || 0,
-        cachedInputTokens: (usage as any).cachedInputTokens || 0
+        promptTokens: usageData.inputTokens || 0,
+        completionTokens: usageData.outputTokens || 0,
+        totalTokens: usageData.totalTokens || 0,
+        reasoningTokens: usageData.reasoningTokens || 0,
+        cachedInputTokens: usageData.cachedInputTokens || 0
       } : undefined
     };
   } catch (error) {

@@ -133,14 +133,14 @@ function calculateStats(logs: GenerationLogData[]) {
     }
     // Handle moduleUsage format (per-action breakdown)
     else if (log.moduleUsage && log.moduleUsage.length > 0) {
-      for (const module of log.moduleUsage) {
-        promptTokens += module.inputTokens;
-        completionTokens += module.outputTokens;
-        tokens += module.totalTokens;
+      for (const moduleUsage of log.moduleUsage) {
+        promptTokens += moduleUsage.inputTokens;
+        completionTokens += moduleUsage.outputTokens;
+        tokens += moduleUsage.totalTokens;
 
         // Aggregate module breakdown
-        if (!moduleBreakdown[module.module]) {
-          moduleBreakdown[module.module] = {
+        if (!moduleBreakdown[moduleUsage.module]) {
+          moduleBreakdown[moduleUsage.module] = {
             inputTokens: 0,
             outputTokens: 0,
             totalTokens: 0,
@@ -150,13 +150,13 @@ function calculateStats(logs: GenerationLogData[]) {
             callCount: 0
           };
         }
-        moduleBreakdown[module.module].inputTokens += module.inputTokens;
-        moduleBreakdown[module.module].outputTokens += module.outputTokens;
-        moduleBreakdown[module.module].totalTokens += module.totalTokens;
-        moduleBreakdown[module.module].reasoningTokens += module.reasoningTokens || 0;
-        moduleBreakdown[module.module].cachedInputTokens += module.cachedInputTokens || 0;
-        moduleBreakdown[module.module].cost += module.cost;
-        moduleBreakdown[module.module].callCount += module.callCount;
+        moduleBreakdown[moduleUsage.module].inputTokens += moduleUsage.inputTokens;
+        moduleBreakdown[moduleUsage.module].outputTokens += moduleUsage.outputTokens;
+        moduleBreakdown[moduleUsage.module].totalTokens += moduleUsage.totalTokens;
+        moduleBreakdown[moduleUsage.module].reasoningTokens += moduleUsage.reasoningTokens || 0;
+        moduleBreakdown[moduleUsage.module].cachedInputTokens += moduleUsage.cachedInputTokens || 0;
+        moduleBreakdown[moduleUsage.module].cost += moduleUsage.cost;
+        moduleBreakdown[moduleUsage.module].callCount += moduleUsage.callCount;
       }
     }
     // Handle old format (tokenUsage with byTool)

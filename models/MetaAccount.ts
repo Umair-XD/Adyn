@@ -2,6 +2,16 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IMetaAccount extends Document {
   userId: mongoose.Types.ObjectId;
+  
+  // Business Account Info
+  businessId?: string;
+  businessName?: string;
+  
+  // Portfolio Info (if account is in a portfolio)
+  portfolioId?: string;
+  portfolioName?: string;
+  
+  // Ad Account Info
   accountId: string;
   accountName: string;
   accessToken: string;
@@ -11,6 +21,8 @@ export interface IMetaAccount extends Document {
   timezoneName: string;
   accountStatus: number;
   permissions: string[];
+  
+  // Pixels
   pixels: Array<{
     id: string;
     name: string;
@@ -18,6 +30,8 @@ export interface IMetaAccount extends Document {
     creationTime: Date;
     lastFiredTime?: Date;
   }>;
+  
+  // Metadata
   isActive: boolean;
   lastSyncAt?: Date;
   createdAt: Date;
@@ -26,7 +40,17 @@ export interface IMetaAccount extends Document {
 
 const MetaAccountSchema = new Schema<IMetaAccount>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  accountId: { type: String, required: true, unique: true },
+  
+  // Business Account Info
+  businessId: { type: String },
+  businessName: { type: String },
+  
+  // Portfolio Info
+  portfolioId: { type: String },
+  portfolioName: { type: String },
+  
+  // Ad Account Info
+  accountId: { type: String, required: true, index: true },
   accountName: { type: String, required: true },
   accessToken: { type: String, required: true },
   refreshToken: { type: String },
@@ -35,6 +59,8 @@ const MetaAccountSchema = new Schema<IMetaAccount>({
   timezoneName: { type: String, required: true },
   accountStatus: { type: Number, required: true },
   permissions: [{ type: String }],
+  
+  // Pixels
   pixels: [{
     id: { type: String, required: true },
     name: { type: String, required: true },
@@ -42,14 +68,18 @@ const MetaAccountSchema = new Schema<IMetaAccount>({
     creationTime: { type: Date, required: true },
     lastFiredTime: { type: Date }
   }],
+  
+  // Metadata
   isActive: { type: Boolean, default: true },
   lastSyncAt: { type: Date }
 }, {
-  timestamps: true
+  timestamps: true,
+  autoIndex: false
 });
 
-// Index for efficient queries
+// Add compound indexes for efficient queries
+MetaAccountSchema.index({ userId: 1, accountId: 1 }, { unique: true });
 MetaAccountSchema.index({ userId: 1, isActive: 1 });
-MetaAccountSchema.index({ accountId: 1 });
 
-export default mongoose.models.MetaAccount || mongoose.model<IMetaAccount>('MetaAccount', MetaAccountSchema);
+export default (mongoose.models.MetaAccount as mongoose.Model<IMetaAccount>) || 
+  mongoose.model<IMetaAccount>('MetaAccount', MetaAccountSchema);

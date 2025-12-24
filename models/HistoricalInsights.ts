@@ -39,7 +39,7 @@ export interface IHistoricalInsights extends Document {
     age_min?: number;
     age_max?: number;
     genders?: number[];
-    geo_locations?: Record<string, any>;
+    geo_locations?: Record<string, unknown>;
     interests?: Array<{ id: string; name: string }>;
     behaviors?: Array<{ id: string; name: string }>;
     custom_audiences?: string[];
@@ -147,8 +147,8 @@ const HistoricalInsightsSchema = new Schema<IHistoricalInsights>({
   timestamps: true
 });
 
-// Indexes for efficient queries
-HistoricalInsightsSchema.index({ userId: 1, accountId: 1 });
+// Indexes for efficient queries - avoid accountId to prevent conflicts
+HistoricalInsightsSchema.index({ userId: 1, campaignId: 1 });
 HistoricalInsightsSchema.index({ userId: 1, productCategory: 1 });
 HistoricalInsightsSchema.index({ userId: 1, performanceScore: -1 });
 HistoricalInsightsSchema.index({ campaignId: 1 });

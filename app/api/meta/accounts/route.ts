@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongoose';
 import MetaAccount from '@/models/MetaAccount';
-import MetaAPIClient from '@/lib/meta-api';
 
-export async function GET(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
