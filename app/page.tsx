@@ -1,13 +1,15 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { Navbar } from "@/components/landing/navbar";
+import { Hero } from "@/components/landing/hero";
+import { DashboardPreview } from "@/components/landing/dashboard-preview";
+import { Footer } from "@/components/landing/footer";
 
-export default async function Home() {
-  const session = await getServerSession(authOptions);
-  
-  if (session) {
-    redirect('/dashboard');
-  } else {
-    redirect('/login');
-  }
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-[#020817] selection:bg-orange-500/30">
+      <Navbar />
+      <Hero />
+      <DashboardPreview />
+      <Footer />
+    </main>
+  );
 }
