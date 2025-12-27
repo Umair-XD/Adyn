@@ -15,6 +15,7 @@
     "@ai-sdk/gateway": "^2.0.21",
     "@hookform/resolvers": "^5.2.2",
     "@modelcontextprotocol/sdk": "^1.22.0",
+    "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-slot": "^1.2.4",
     "ai": "^5.0.108",
     "axios": "^1.13.2",

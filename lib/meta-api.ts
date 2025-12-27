@@ -160,7 +160,7 @@ export class MetaAPIClient {
         fields: 'id,name,business_id,created_time,updated_time'
       });
       return response.data;
-    } catch (error) {
+    } catch {
       console.log('Portfolio endpoint not available, returning empty array');
       return [];
     }
@@ -202,7 +202,7 @@ export class MetaAPIClient {
     let portfolios: MetaPortfolio[] = [];
     try {
       portfolios = await this.getPortfolios(businessId);
-    } catch (error) {
+    } catch {
       console.log('Portfolios not available for this business account');
     }
     
@@ -212,7 +212,7 @@ export class MetaAPIClient {
         try {
           const adAccounts = await this.getPortfolioAdAccounts(portfolio.id);
           return { portfolio, adAccounts };
-        } catch (error) {
+        } catch {
           console.log(`Failed to get ad accounts for portfolio ${portfolio.id}`);
           return { portfolio, adAccounts: [] };
         }

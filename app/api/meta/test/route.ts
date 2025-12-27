@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import axios from 'axios';
 
 const META_APP_ID = process.env.META_APP_ID;
 const META_APP_SECRET = process.env.META_APP_SECRET;
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Test if we can get an app access token
     const response = await axios.get('https://graph.facebook.com/oauth/access_token', {

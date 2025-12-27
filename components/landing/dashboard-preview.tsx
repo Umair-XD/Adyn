@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { LucideLayoutDashboard, LucideLightbulb, LucideMegaphone, LucideImage, LucidePenTool, LucideUsers, LucideBarChart, LucideBell, LucideSearch, LucideSparkles, LucideArrowUpRight, LucideTrendingUp, LucideMousePointer2, LucideShoppingCart, LucideMoreVertical } from "lucide-react"
 
 import Link from "next/link"
@@ -70,7 +69,7 @@ export function DashboardPreview() {
                 <div className="flex items-end justify-between mb-10">
                    <div>
                       <h2 className="text-2xl font-bold text-gray-900 mb-1">Welcome back, John 👋</h2>
-                      <p className="text-gray-500 font-medium">Here's what's happening with your store today.</p>
+                      <p className="text-gray-500 font-medium">Here&apos;s what&apos;s happening with your store today.</p>
                    </div>
                    <div className="flex gap-3">
                       <Button variant="outline" size="sm" className="gap-2 text-gray-700 border-gray-200 hover:bg-gray-50 h-10 px-4 font-medium bg-white shadow-sm">
@@ -112,7 +111,6 @@ export function DashboardPreview() {
                       change="+12.5%" 
                       icon={<LucideTrendingUp className="text-blue-600 w-5 h-5" />} 
                       bg="bg-blue-50" 
-                      textColor="text-blue-700"
                       chartColor="text-blue-500"
                    />
                    <MetricCard 
@@ -122,7 +120,6 @@ export function DashboardPreview() {
                       trend="down"
                       icon={<span className="text-[#fa9e14] font-bold text-lg leading-none">$</span>} 
                       bg="bg-orange-50" 
-                      textColor="text-[#fa9e14]"
                       chartColor="text-orange-500"
                    />
                    <MetricCard 
@@ -131,7 +128,6 @@ export function DashboardPreview() {
                       change="+8.1%" 
                       icon={<LucideMousePointer2 className="text-purple-600 w-5 h-5" />} 
                       bg="bg-purple-50" 
-                      textColor="text-purple-700"
                       chartColor="text-purple-500"
                    />
                    <MetricCard 
@@ -140,7 +136,6 @@ export function DashboardPreview() {
                       change="+15.3%" 
                       icon={<LucideShoppingCart className="text-teal-600 w-5 h-5" />} 
                       bg="bg-teal-50" 
-                      textColor="text-teal-700"
                       chartColor="text-teal-500"
                    />
                 </div>
@@ -177,7 +172,15 @@ function SuggestionChip({ label, icon }: { label: string, icon?: React.ReactNode
   )
 }
 
-function MetricCard({ label, value, change, trend = 'up', icon, bg, textColor, chartColor }: any) {
+function MetricCard({ label, value, change, trend = 'up', icon, bg, chartColor }: {
+  label: string;
+  value: string;
+  change: string;
+  trend?: 'up' | 'down';
+  icon: React.ReactNode;
+  bg: string;
+  chartColor: string;
+}) {
    return (
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
          <div className="flex justify-between items-start mb-5">
