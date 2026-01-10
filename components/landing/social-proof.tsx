@@ -20,7 +20,7 @@ export function SocialProof() {
             <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors relative">
               <Quote className="absolute top-8 right-8 w-8 h-8 text-white/5" />
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-white/10"></div>
+                <div className="w-12 h-12 rounded-full bg-linear-to-br from-gray-700 to-gray-900 border border-white/10"></div>
                 <div>
                     <div className="text-white font-bold">{testimonial.author}</div>
                     <div className="text-gray-500 text-sm">{testimonial.role}</div>

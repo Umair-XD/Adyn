@@ -8,7 +8,7 @@ export function GrowthFeatures() {
 
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 tracking-tight mb-4 font-urbanist">
+          <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-linear-to-r from-white to-white/70 tracking-tight mb-4 font-urbanist">
             Adyn isn&apos;t just another AI tool.<br />
             It&apos;s your growth partner.
           </h2>
@@ -18,7 +18,7 @@ export function GrowthFeatures() {
           {features.map((feature, i) => (
             <div 
               key={i}
-              className="group p-8 rounded-3xl bg-gradient-to-b from-white/5 to-transparent border border-white/5 hover:border-white/10 transition-all duration-300"
+              className="group p-8 rounded-3xl bg-linear-to-b from-white/5 to-transparent border border-white/5 hover:border-white/10 transition-all duration-300"
             >
               <div className="w-12 h-12 rounded-xl bg-[#fa9e14]/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <feature.icon className="w-6 h-6 text-[#fa9e14]" />

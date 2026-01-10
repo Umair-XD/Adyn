@@ -8,6 +8,7 @@ if (!apiKey) {
 }
 
 const gateway = createGateway({ apiKey });
+
 export const openai = gateway;
 
 console.error(`✓ Vercel AI Gateway initialized with credits`);

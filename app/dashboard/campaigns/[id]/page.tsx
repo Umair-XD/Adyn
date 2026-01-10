@@ -10,7 +10,54 @@ interface Campaign {
   name: string;
   objective: string;
   platforms: string[];
-  generationResult: AdynOutput;
+  generationResult: AdynOutput & {
+    intelligent_campaign_data?: {
+      campaign_payload?: {
+        name: string;
+        objective: string;
+        status: string;
+        buying_type: string;
+      };
+      adset_payloads?: Array<{
+        name: string;
+        targeting: {
+          geo_locations: { countries: string[] };
+          age_min: number;
+          age_max: number;
+          interests?: Array<{ id: string; name: string }>;
+        };
+        optimization: {
+          optimization_goal: string;
+          billing_event: string;
+          bid_strategy: string;
+        };
+        budget: {
+          daily_budget: number;
+          budget_type: string;
+        };
+      }>;
+      creative_payloads?: Array<{
+        adset_ref: string;
+        creative: {
+          name: string;
+          object_story_spec: {
+            link_data: {
+              message: string;
+              name: string;
+              description: string;
+              call_to_action: {
+                type: string;
+              };
+            };
+          };
+        };
+      }>;
+      risks?: string[];
+      assumptions?: string[];
+      ai_reasoning?: string;
+      product_fingerprint?: string;
+    };
+  };
   project: {
     id: string;
     name: string;
@@ -58,6 +105,14 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+// ... existing state
+  const [metaAccounts, setMetaAccounts] = useState<Array<{ accountId: string; accountName: string }>>([]);
+  const [showAccountSelector, setShowAccountSelector] = useState(false);
+  const [selectedMetaAccountId, setSelectedMetaAccountId] = useState('');
+  const [metaActionLoading, setMetaActionLoading] = useState(false);
+
+  // ... existing useEffect
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,6 +136,52 @@ export default function CampaignDetailPage() {
 
     fetchData();
   }, [params.id]);
+
+  const loadMetaAccounts = async () => {
+    try {
+      const response = await fetch('/api/meta/accounts');
+      const data = await response.json();
+      if (response.ok) {
+        setMetaAccounts(data.accounts || []);
+      }
+    } catch (error) {
+      console.error('Failed to load meta accounts:', error);
+    }
+  };
+
+  const createMetaCampaign = async () => {
+    if (!selectedMetaAccountId || !campaign) return;
+    
+    setMetaActionLoading(true);
+    try {
+      const response = await fetch('/api/campaigns/create-meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: campaign.id,
+          metaAccountId: selectedMetaAccountId
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert('Meta campaign created successfully!');
+        setShowAccountSelector(false);
+        // Refresh campaign data to show new meta info
+        const campaignRes = await fetch(`/api/campaigns/${params.id}`);
+        const campaignData = await campaignRes.json();
+        setCampaign(campaignData.campaign);
+      } else {
+        alert(`Failed to create Meta campaign: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Meta campaign creation error:', error);
+      alert('Failed to create Meta campaign details');
+    } finally {
+      setMetaActionLoading(false);
+    }
+  };
 
   const exportJSON = () => {
     if (!campaign) return;
@@ -149,9 +250,64 @@ export default function CampaignDetailPage() {
           <p className="text-gray-600 mt-2">Source: {campaign.source.inputUrl}</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Create Meta Campaign Section */}
+          {result.intelligent_campaign_data && (
+            <div className="flex items-center gap-3">
+              {/* Account Selector Dialog/Dropdown */}
+              {showAccountSelector ? (
+                <div className="relative">
+                  <select
+                    value={selectedMetaAccountId}
+                    onChange={(e) => setSelectedMetaAccountId(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2 min-w-[200px]"
+                    disabled={metaActionLoading}
+                  >
+                    <option value="">Select Meta Account</option>
+                    {metaAccounts.map((account) => (
+                      <option key={account.accountId} value={account.accountId}>
+                        {account.accountName} ({account.accountId})
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <div className="flex items-center gap-2 mt-2 absolute right-0 top-full bg-white p-2 shadow-lg rounded-lg border border-gray-200 z-10 w-[300px]">
+                    <button
+                      onClick={() => setShowAccountSelector(false)}
+                      className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                      disabled={metaActionLoading}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={createMetaCampaign}
+                      disabled={!selectedMetaAccountId || metaActionLoading}
+                      className="flex-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {metaActionLoading ? 'Creating...' : 'Confirm & Create'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    // Load accounts if not loaded
+                    if (metaAccounts.length === 0) loadMetaAccounts();
+                    setShowAccountSelector(true);
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 whitespace-nowrap"
+                >
+                  <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  <span>Create Meta Campaign</span>
+                </button>
+              )}
+            </div>
+          )}
+          
           <button
             onClick={exportJSON}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 whitespace-nowrap"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
           >
             <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -174,7 +330,7 @@ export default function CampaignDetailPage() {
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
-          {['overview', 'ads', 'audience', 'strategy', 'stats'].map((tab) => (
+          {['overview', 'ads', 'audience', 'strategy', 'intelligent', 'stats'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -184,7 +340,7 @@ export default function CampaignDetailPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'intelligent' ? '🚀 AI Campaign' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </nav>
@@ -553,6 +709,221 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'intelligent' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-900">🚀 AI-Generated Campaign Structure</h2>
+            
+            {result.intelligent_campaign_data ? (
+              <div className="space-y-6">
+                {/* AI Reasoning */}
+                {result.intelligent_campaign_data.ai_reasoning && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-3">🧠 AI Strategy Reasoning</h3>
+                    <p className="text-blue-700">{result.intelligent_campaign_data.ai_reasoning}</p>
+                  </div>
+                )}
+
+                {/* Campaign Structure */}
+                {result.intelligent_campaign_data.campaign_payload && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Campaign Configuration</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Campaign Name</p>
+                        <p className="text-gray-900 mt-1">{result.intelligent_campaign_data.campaign_payload.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Objective</p>
+                        <p className="text-gray-900 mt-1">{result.intelligent_campaign_data.campaign_payload.objective}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Status</p>
+                        <p className="text-gray-900 mt-1">{result.intelligent_campaign_data.campaign_payload.status}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Buying Type</p>
+                        <p className="text-gray-900 mt-1">{result.intelligent_campaign_data.campaign_payload.buying_type}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ad Sets */}
+                {result.intelligent_campaign_data.adset_payloads && result.intelligent_campaign_data.adset_payloads.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">🎯 Ad Sets Configuration</h3>
+                    <div className="space-y-4">
+                      {result.intelligent_campaign_data.adset_payloads.map((adset, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-800 mb-3">{adset.name}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 mb-2">Targeting</p>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <p>Age: {adset.targeting.age_min}-{adset.targeting.age_max}</p>
+                                <p>Countries: {adset.targeting.geo_locations.countries.join(', ')}</p>
+                                {adset.targeting.interests && adset.targeting.interests.length > 0 && (
+                                  <p>Interests: {adset.targeting.interests.slice(0, 3).map(i => i.name).join(', ')}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 mb-2">Optimization</p>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <p>Goal: {adset.optimization.optimization_goal}</p>
+                                <p>Billing: {adset.optimization.billing_event}</p>
+                                <p>Bid Strategy: {adset.optimization.bid_strategy}</p>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 mb-2">Budget</p>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <p>Daily: ${adset.budget.daily_budget}</p>
+                                <p>Type: {adset.budget.budget_type}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Creatives */}
+                {result.intelligent_campaign_data.creative_payloads && result.intelligent_campaign_data.creative_payloads.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">🎨 Creative Configuration</h3>
+                    <div className="space-y-4">
+                      {result.intelligent_campaign_data.creative_payloads.map((creative, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-800 mb-3">{creative.creative.name}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Ad Set Reference</p>
+                              <p className="text-sm text-gray-600 mt-1">{creative.adset_ref}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Call to Action</p>
+                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.call_to_action.type}</p>
+                            </div>
+                            <div className="md:col-span-2">
+                              <p className="text-sm font-medium text-gray-700">Headline</p>
+                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.name}</p>
+                            </div>
+                            <div className="md:col-span-2">
+                              <p className="text-sm font-medium text-gray-700">Primary Text</p>
+                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.message}</p>
+                            </div>
+                            <div className="md:col-span-2">
+                              <p className="text-sm font-medium text-gray-700">Description</p>
+                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Risks and Assumptions */}
+                {(result.intelligent_campaign_data.risks || result.intelligent_campaign_data.assumptions) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {result.intelligent_campaign_data.risks && result.intelligent_campaign_data.risks.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-red-800 mb-3">⚠️ Identified Risks</h3>
+                        <ul className="space-y-2">
+                          {result.intelligent_campaign_data.risks.map((risk, index) => (
+                            <li key={index} className="text-sm text-red-700 flex items-start">
+                              <span className="mr-2 mt-1">•</span>
+                              <span>{risk}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {result.intelligent_campaign_data.assumptions && result.intelligent_campaign_data.assumptions.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-blue-800 mb-3">💡 AI Assumptions</h3>
+                        <ul className="space-y-2">
+                          {result.intelligent_campaign_data.assumptions.map((assumption, index) => (
+                            <li key={index} className="text-sm text-blue-700 flex items-start">
+                              <span className="mr-2 mt-1">•</span>
+                              <span>{assumption}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Product Fingerprint */}
+                {result.intelligent_campaign_data.product_fingerprint && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">🔍 Product Fingerprint</h3>
+                    <p className="text-sm text-gray-600 mb-2">Used for deduplication and campaign optimization:</p>
+                    <code className="bg-gray-100 px-3 py-2 rounded text-sm font-mono text-gray-800">
+                      {result.intelligent_campaign_data.product_fingerprint}
+                    </code>
+                  </div>
+                )}
+
+                {/* Meta Campaign Creation */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-green-800 mb-3">🚀 Ready for Meta Campaign Creation</h3>
+                  <p className="text-green-700 mb-4">
+                    This AI-generated campaign structure is ready to be deployed to Meta. Connect your Meta ad account to create live campaigns, ad sets, and creatives.
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/campaigns/create-meta', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              campaignId: campaign.id,
+                              metaAccountId: 'act_placeholder' // TODO: Get from user's connected Meta account
+                            })
+                          });
+                          
+                          const data = await response.json();
+                          
+                          if (response.ok) {
+                            alert('Meta campaign created successfully!');
+                          } else {
+                            alert(`Failed to create Meta campaign: ${data.error}`);
+                          }
+                        } catch (error) {
+                          console.error('Meta campaign creation error:', error);
+                          alert('Failed to create Meta campaign');
+                        }
+                      }}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                    >
+                      Create Live Meta Campaign
+                    </button>
+                    <a
+                      href="/dashboard/meta"
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    >
+                      Connect Meta Account
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Legacy Campaign</h3>
+                <p className="text-yellow-700">
+                  This campaign was created with the old system. Create a new campaign to use the intelligent AI-powered flow with Meta-ready configurations.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

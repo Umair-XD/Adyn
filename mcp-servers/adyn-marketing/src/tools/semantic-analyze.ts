@@ -85,58 +85,20 @@ const schema = z.object({
 
 export async function semanticAnalyze(input: SemanticAnalyzeInput): Promise<SemanticAnalyzeOutput> {
   try {
-    const prompt = `Analyze this product/service content and provide comprehensive marketing insights including competitive analysis and market sizing:
+    const prompt = `Analyze this product/service content and provide essential marketing insights:
 
 ${input.text}
 
-Provide a JSON response with:
-1. summary: A concise 2-3 sentence summary of what this product/service is
-2. keywords: Array of 10-15 relevant marketing keywords
-3. value_proposition: The core value proposition in one sentence
-4. unique_selling_point: What makes this product uniquely different from competitors (1-2 sentences)
-5. brand_tone: The brand tone (professional, luxury, playful, innovative, eco-conscious, etc.)
-6. audience_persona: Primary target audience description
-7. category: Product category (fashion, technology, health & wellness, beauty, food & beverage, etc.)
-8. use_cases: Array of 3-5 specific use cases or scenarios where this product solves problems
-9. target_segments: Array of 3-5 specific audience segments with:
-   - segment: Name of the segment (e.g., "Office Workers", "Software Engineers", "Gamers")
-   - description: Who they are and why they need this
-   - pain_points: Array of 2-3 specific pain points this product solves for them
+Provide a concise JSON response with key marketing data: summary, keywords (8-10), value_proposition, unique_selling_point, brand_tone, audience_persona, category, use_cases (3-4), target_segments (2-3 with segment, description, pain_points), geographic_analysis (origin_country, primary_markets, cultural_context, local_preferences, regional_competitors), competitor_analysis (main_competitors, competitive_advantages, market_positioning, differentiation_strategy), and market_size_estimation (total_addressable_market, serviceable_addressable_market, target_market_size, growth_potential).
 
-10. geographic_analysis: Geographic and cultural analysis:
-    - origin_country: Country/region where the product originates (e.g., "United States", "Germany", "Japan")
-    - primary_markets: If origin_country is Pakistan, provide 3-5 major Pakistani cities (e.g., "Karachi", "Lahore", "Islamabad", "Faisalabad", "Rawalpindi"). If origin_country is not Pakistan, provide 3-5 primary target countries/regions for marketing
-    - cultural_context: Cultural factors that influence product appeal
-    - local_preferences: Array of region-specific preferences and behaviors
-    - regional_competitors: Local competitors in the origin country/region (if Pakistan, focus on Pakistani competitors)
-
-11. competitor_analysis: Comprehensive competitive landscape analysis:
-    - main_competitors: Array of 5-8 direct and indirect competitors. If the product is from Pakistan (origin_country is Pakistan), prioritize Pakistani local competitors first, then regional competitors from similar markets (India, Bangladesh, etc.), then global competitors. If not from Pakistan, focus on competitors in the origin country and target markets.
-    - competitive_advantages: Array of 3-5 key advantages over competitors
-    - market_positioning: How this product should be positioned vs competitors (premium, budget, niche, etc.)
-    - differentiation_strategy: Strategy to stand out from competitors
-
-12. market_size_estimation: Market opportunity analysis:
-    - total_addressable_market: Total market size estimate (e.g., "$2.5B globally", "15M potential users")
-    - serviceable_addressable_market: Realistic addressable market (e.g., "$500M in target regions", "3M users")
-    - target_market_size: Initial target market size (e.g., "$50M", "500K users in first year")
-    - growth_potential: Market growth trends and potential (e.g., "Growing 15% annually", "Emerging market with high potential")
-
-Be specific and research-backed. Use your knowledge of market data, competitor landscapes, and industry trends to provide realistic estimates and insights.
-
-IMPORTANT: If the product appears to be from Pakistan (based on content analysis), ensure:
-- origin_country is set to "Pakistan"
-- primary_markets focuses on major Pakistani cities (Karachi, Lahore, Islamabad, Faisalabad, Rawalpindi, Peshawar, Quetta, Multan, etc.)
-- regional_competitors includes Pakistani local competitors
-- main_competitors prioritizes Pakistani brands and companies first, then regional (South Asian) competitors
-- cultural_context reflects Pakistani cultural values and preferences
-- local_preferences includes Pakistani consumer behaviors and preferences`;
+Be specific but concise for fast processing.`;
 
     const { object, usage } = await generateObject({
-      model: openai('gpt-4o'),
+      model: openai('gpt-4o'), // Use GPT-4o for faster response
       schema,
       prompt,
       system: 'You are a marketing analysis expert. Provide detailed, actionable insights.',
+      temperature: 0.3 // Lower temperature for faster, more deterministic responses
     });
 
     const usageData = usage as {

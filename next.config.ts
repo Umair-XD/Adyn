@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // Increase API route timeout for long-running campaign generation
+  serverExternalPackages: ['@modelcontextprotocol/sdk'],
 };
 
 export default nextConfig;

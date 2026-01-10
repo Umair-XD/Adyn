@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     const accountId = searchParams.get('accountId');
     const campaignId = searchParams.get('campaignId');
     const includeInsights = searchParams.get('insights') === 'true';
+    const includeComplete = searchParams.get('complete') === 'true';
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
@@ -40,38 +41,50 @@ export async function GET(req: NextRequest) {
     const metaClient = new MetaAPIClient(metaAccount.accessToken);
 
     if (campaignId) {
-      // Get specific campaign insights
-      const dateRange = startDate && endDate ? { since: startDate, until: endDate } : undefined;
-      const insights = await metaClient.getCampaignInsights(campaignId, dateRange);
-      
-      return NextResponse.json({ 
-        campaignId,
-        insights,
-        dateRange 
-      });
-    } else {
-      // Get all campaigns
-      const campaigns = await metaClient.getCampaigns(accountId);
-      
-      if (includeInsights) {
-        // Get insights for each campaign
-        const campaignsWithInsights = await Promise.all(
-          campaigns.map(async (campaign) => {
-            try {
-              const dateRange = startDate && endDate ? { since: startDate, until: endDate } : undefined;
-              const insights = await metaClient.getCampaignInsights(campaign.id, dateRange);
-              return { ...campaign, insights };
-            } catch (error) {
-              console.error(`Failed to get insights for campaign ${campaign.id}:`, error);
-              return { ...campaign, insights: null };
-            }
-          })
-        );
+      if (includeComplete) {
+        // Get complete campaign data with all adsets, ads, and creatives
+        const completeCampaign = await metaClient.getCampaignComplete(campaignId, includeInsights);
+        return NextResponse.json({ campaign: completeCampaign });
+      } else {
+        // Get specific campaign insights only
+        const dateRange = startDate && endDate ? { since: startDate, until: endDate } : undefined;
+        const insights = await metaClient.getCampaignInsights(campaignId, dateRange);
         
-        return NextResponse.json({ campaigns: campaignsWithInsights });
+        return NextResponse.json({ 
+          campaignId,
+          insights,
+          dateRange 
+        });
       }
+    } else {
+      if (includeComplete) {
+        // Get all campaigns with complete data
+        const completeCampaigns = await metaClient.getAllCampaignsComplete(accountId, includeInsights);
+        return NextResponse.json({ campaigns: completeCampaigns });
+      } else {
+        // Get all campaigns (basic data)
+        const campaigns = await metaClient.getCampaigns(accountId);
+        
+        if (includeInsights) {
+          // Get insights for each campaign
+          const campaignsWithInsights = await Promise.all(
+            campaigns.map(async (campaign) => {
+              try {
+                const dateRange = startDate && endDate ? { since: startDate, until: endDate } : undefined;
+                const insights = await metaClient.getCampaignInsights(campaign.id, dateRange);
+                return { ...campaign, insights };
+              } catch (error) {
+                console.error(`Failed to get insights for campaign ${campaign.id}:`, error);
+                return { ...campaign, insights: null };
+              }
+            })
+          );
+          
+          return NextResponse.json({ campaigns: campaignsWithInsights });
+        }
 
-      return NextResponse.json({ campaigns });
+        return NextResponse.json({ campaigns });
+      }
     }
 
   } catch (error) {

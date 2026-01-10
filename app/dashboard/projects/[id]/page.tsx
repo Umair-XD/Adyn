@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import CampaignProgressDisplay from '@/components/campaign/CampaignProgressDisplay';
 
 interface Source {
   id: string;
@@ -33,8 +34,11 @@ export default function ProjectDetailPage() {
   const [showAnalyzeDialog, setShowAnalyzeDialog] = useState(false);
   const [url, setUrl] = useState('');
   const [objective, setObjective] = useState('Conversions');
+  const [budget, setBudget] = useState(1000);
+  const [geoTargets, setGeoTargets] = useState(['US']);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
+  const [progressiveResults, setProgressiveResults] = useState<any>(null);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -56,6 +60,13 @@ export default function ProjectDetailPage() {
     e.preventDefault();
     setError('');
     setAnalyzing(true);
+    setProgressiveResults({
+      status: 'in_progress',
+      current_step: 'fetching',
+      steps: {},
+      warnings: [],
+      errors: []
+    });
 
     try {
       const response = await fetch('/api/adyn/generate', {
@@ -64,7 +75,9 @@ export default function ProjectDetailPage() {
         body: JSON.stringify({
           projectId: params.id,
           url,
-          objective
+          objective,
+          budget,
+          geoTargets
         }),
       });
 
@@ -72,13 +85,33 @@ export default function ProjectDetailPage() {
 
       if (!response.ok) {
         setError(data.error || 'Analysis failed');
+        setProgressiveResults({
+          ...progressiveResults,
+          status: 'failed',
+          errors: [data.error || 'Analysis failed']
+        });
       } else {
-        setShowAnalyzeDialog(false);
-        setUrl('');
-        router.push(`/dashboard/campaigns/${data.campaignId}`);
+        // Update with final results
+        if (data.generationResult) {
+          setProgressiveResults(data.generationResult);
+        }
+        
+        // Auto-redirect after 3 seconds to let user see the summary
+        setTimeout(() => {
+          setShowAnalyzeDialog(false);
+          setUrl('');
+          setProgressiveResults(null);
+          router.push(`/dashboard/campaigns/${data.campaignId}`);
+        }, 3000);
       }
-    } catch {
-      setError('An error occurred. Please try again.');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred. Please try again.';
+      setError(errorMsg);
+      setProgressiveResults({
+        ...progressiveResults,
+        status: 'failed',
+        errors: [errorMsg]
+      });
     } finally {
       setAnalyzing(false);
     }
@@ -113,9 +146,9 @@ export default function ProjectDetailPage() {
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          <span>Analyze URL</span>
+          <span>🚀 Create AI Campaign</span>
         </button>
       </div>
 
@@ -176,15 +209,34 @@ export default function ProjectDetailPage() {
         )}
       </div>
 
-      {/* Analyze URL Dialog */}
+      {/* Create AI Campaign Dialog */}
       {showAnalyzeDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Analyze URL</h2>
-            <form onSubmit={handleAnalyze} className="space-y-4">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">🚀 Create AI-Powered Campaign</h2>
+            
+            {/* Show Progressive Results if analyzing */}
+            {progressiveResults ? (
+              <CampaignProgressDisplay 
+                status={progressiveResults.status}
+                current_step={progressiveResults.current_step}
+                steps={progressiveResults.steps}
+                summary={progressiveResults.summary}
+                warnings={progressiveResults.warnings}
+                errors={progressiveResults.errors}
+              />
+            ) : (
+              <>
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700">
+                    <strong>🚀 ENHANCED MODE:</strong> AI analyzes your product step-by-step with real-time progress updates. Watch as we build your expert-level campaign!
+                  </p>
+                </div>
+                
+                <form onSubmit={handleAnalyze} className="space-y-4">
               <div>
                 <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
-                  Website URL *
+                  Product URL * 🔥
                 </label>
                 <input
                   id="url"
@@ -192,49 +244,95 @@ export default function ProjectDetailPage() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://example.com"
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-orange-50"
+                  placeholder="https://yourwebsite.com/product-page"
                 />
+                <p className="text-xs text-orange-600 mt-1">
+                  Essential for intelligent targeting and creative generation
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="objective" className="block text-sm font-medium text-gray-700 mb-2">
+                    Campaign Purpose
+                  </label>
+                  <select
+                    id="objective"
+                    value={objective}
+                    onChange={(e) => setObjective(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Conversions">Conversions</option>
+                    <option value="Traffic">Traffic</option>
+                    <option value="Awareness">Awareness</option>
+                    <option value="Engagement">Engagement</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="budget" className="block text-sm font-medium text-gray-700 mb-2">
+                    Total Budget ($)
+                  </label>
+                  <input
+                    id="budget"
+                    type="number"
+                    value={budget}
+                    onChange={(e) => setBudget(parseInt(e.target.value))}
+                    min="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               <div>
-                <label htmlFor="objective" className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaign Objective
+                <label htmlFor="geoTargets" className="block text-sm font-medium text-gray-700 mb-2">
+                  Geographic Targeting
                 </label>
                 <select
-                  id="objective"
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
+                  id="geoTargets"
+                  value={geoTargets[0]}
+                  onChange={(e) => setGeoTargets([e.target.value])}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Conversions">Conversions</option>
-                  <option value="Traffic">Traffic</option>
-                  <option value="Awareness">Awareness</option>
-                  <option value="Engagement">Engagement</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="AU">Australia</option>
+                  <option value="PK">Pakistan</option>
+                  <option value="IN">India</option>
+                  <option value="DE">Germany</option>
+                  <option value="FR">France</option>
                 </select>
               </div>
 
               {error && (
-                <div className="text-red-600 text-sm">{error}</div>
+                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</div>
               )}
 
-              <div className="flex space-x-4">
+              <div className="flex space-x-4 pt-4">
                 <button
                   type="submit"
                   disabled={analyzing}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
                 >
-                  {analyzing ? 'Analyzing...' : 'Analyze'}
+                  {analyzing ? '🧠 Creating ENHANCED Campaign with Meta Intelligence...' : '🚀 Create ENHANCED AI Campaign'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAnalyzeDialog(false)}
+                  onClick={() => {
+                    setShowAnalyzeDialog(false);
+                    setUrl('');
+                    setError('');
+                  }}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
                 >
                   Cancel
                 </button>
               </div>
             </form>
+            </>
+            )}
           </div>
         </div>
       )}

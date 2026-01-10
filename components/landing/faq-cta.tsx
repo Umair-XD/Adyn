@@ -25,9 +25,9 @@ export function FaqCta() {
       </div>
 
       <div className="max-w-5xl mx-auto relative">
-         <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-purple-500/20 blur-[100px] rounded-full -z-10 pointer-events-none"></div>
+         <div className="absolute inset-0 bg-linear-to-r from-orange-500/20 to-purple-500/20 blur-[100px] rounded-full -z-10 pointer-events-none"></div>
          
-         <div className="bg-gradient-to-b from-white/10 to-black/40 border border-white/10 rounded-3xl p-8 md:p-16 text-center backdrop-blur-sm overflow-hidden relative">
+         <div className="bg-linear-to-b from-white/10 to-black/40 border border-white/10 rounded-3xl p-8 md:p-16 text-center backdrop-blur-sm overflow-hidden relative">
             {/* Grid overlay */}
             <div className="absolute inset-0 opacity-[0.05]" 
                style={{

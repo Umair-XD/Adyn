@@ -17,7 +17,7 @@ export function HowItWorks() {
 
         <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12">
           {/* Connector Line (Desktop only) */}
-          <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-[#fa9e14]/0 via-[#fa9e14]/30 to-[#fa9e14]/0 border-t border-dashed border-white/20"></div>
+          <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-linear-to-r from-[#fa9e14]/0 via-[#fa9e14]/30 to-[#fa9e14]/0 border-t border-dashed border-white/20"></div>
 
           {steps.map((step, i) => (
             <div key={i} className="relative flex flex-col items-center text-center z-10">

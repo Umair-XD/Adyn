@@ -6,9 +6,14 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { fetchUrl } from './tools/fetch-url.js';
 import { extractContent } from './tools/extract-content.js';
 import { semanticAnalyze } from './tools/semantic-analyze.js';
-import { generateAds } from './tools/generate-ads.js';
-import { audienceBuilder } from './tools/audience-builder.js';
-import { campaignBuilder, CampaignBuilderInput } from './tools/campaign-builder.js';
+import { accountAudit } from './tools/account-audit.js';
+import { strategyEngine } from './tools/strategy-engine.js';
+import { audienceConstructor } from './tools/audience-constructor.js';
+import { placementIntelligence } from './tools/placement-intelligence.js';
+import { creativeStrategy } from './tools/creative-strategy.js';
+import { budgetOptimizer } from './tools/budget-optimizer.js';
+import { campaignOrchestrator } from './tools/campaign-orchestrator.js';
+import { campaignBuilder } from './tools/campaign-builder.js';
 
 const server = new Server(
   {
@@ -26,77 +31,149 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: 'fetch_url',
-        description: 'Fetches HTML content from a URL',
+        name: 'campaign_builder',
+        description: 'COMPLETE BUILDER: Generates a complete Meta Ads campaign from product URL (Fetch → Analyze → Strategy → Audience → Creative → Budget → Assembly)',
         inputSchema: {
           type: 'object',
           properties: {
-            url: { type: 'string', description: 'The URL to fetch' }
+            product_url: { type: 'string', description: 'Product/service URL to analyze' },
+            campaign_purpose: {
+              type: 'string',
+              enum: ['conversion', 'engagement', 'traffic', 'awareness'],
+              description: 'Primary objective'
+            },
+            budget: { type: 'number', description: 'Total campaign budget' },
+            geo_targets: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Target countries (e.g. ["US", "UK"])'
+            },
+            ad_account_id: { type: 'string', description: 'Optional Meta Ad Account ID' },
+            raw_meta_account_data: {
+              type: 'object',
+              description: 'Optional raw insights for account intelligence'
+            }
+          },
+          required: ['product_url', 'campaign_purpose', 'budget', 'geo_targets']
+        }
+      },
+      {
+        name: 'fetch_url',
+        description: 'Fetches HTML content from product/catalog URLs',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            url: { type: 'string' }
           },
           required: ['url']
         }
       },
       {
         name: 'extract_content',
-        description: 'Extracts readable content, images, and metadata from HTML',
+        description: 'Extracts structured information from HTML',
         inputSchema: {
           type: 'object',
           properties: {
-            html: { type: 'string', description: 'HTML content to extract from' }
+            html: { type: 'string' }
           },
           required: ['html']
         }
       },
       {
         name: 'semantic_analyze',
-        description: 'Analyzes text to extract marketing insights',
+        description: 'AI analysis of product content',
         inputSchema: {
           type: 'object',
           properties: {
-            text: { type: 'string', description: 'Text content to analyze' }
+            text: { type: 'string' }
           },
           required: ['text']
         }
       },
       {
-        name: 'generate_ads',
-        description: 'Generates platform-specific ad creatives',
+        name: 'account_audit',
+        description: 'Audits Meta account data',
         inputSchema: {
           type: 'object',
           properties: {
-            summary: { type: 'string' },
-            brand_tone: { type: 'string' },
-            persona: { type: 'string' },
-            keywords: { type: 'array', items: { type: 'string' } },
-            platforms: { type: 'array', items: { type: 'string' } }
+            account_data: { type: 'object' }
           },
-          required: ['summary', 'brand_tone', 'persona', 'keywords', 'platforms']
+          required: ['account_data']
         }
       },
       {
-        name: 'audience_builder',
-        description: 'Builds detailed audience targeting',
+        name: 'strategy_engine',
+        description: 'Determines campaign strategy',
         inputSchema: {
           type: 'object',
           properties: {
-            persona: { type: 'string' },
-            keywords: { type: 'array', items: { type: 'string' } },
-            category: { type: 'string' }
+            audit_result: { type: 'object' },
+            business_goal: { type: 'string' },
+            campaign_input: { type: 'object' }
           },
-          required: ['persona', 'keywords', 'category']
+          required: ['audit_result', 'business_goal', 'campaign_input']
         }
       },
       {
-        name: 'campaign_builder',
-        description: 'Creates complete campaign strategy',
+        name: 'audience_constructor',
+        description: 'Constructs target audiences',
         inputSchema: {
           type: 'object',
           properties: {
-            ads: { type: 'array' },
-            audience: { type: 'object' },
-            objective: { type: 'string' }
+            strategy: { type: 'object' },
+            audience_requirements: { type: 'array' }
           },
-          required: ['ads', 'audience', 'objective']
+          required: ['strategy', 'audience_requirements']
+        }
+      },
+      {
+        name: 'placement_intelligence',
+        description: 'Optimizes ad placements',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            adsets: { type: 'array' },
+            creative_assets: { type: 'array' }
+          },
+          required: ['adsets', 'creative_assets']
+        }
+      },
+      {
+        name: 'creative_strategy',
+        description: 'Generates ad creatives',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            adsets: { type: 'array' },
+            creative_assets: { type: 'array' },
+            brand_guidelines: { type: 'object' }
+          },
+          required: ['adsets', 'creative_assets']
+        }
+      },
+      {
+        name: 'budget_optimizer',
+        description: 'Optimizes budget allocation',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            strategy: { type: 'object' },
+            adsets: { type: 'array' },
+            total_budget: { type: 'number' }
+          },
+          required: ['strategy', 'adsets', 'total_budget']
+        }
+      },
+      {
+        name: 'campaign_orchestrator',
+        description: 'Assembles final API payloads',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            campaign_structure: { type: 'object' },
+            account_id: { type: 'string' }
+          },
+          required: ['campaign_structure', 'account_id']
         }
       }
     ]
@@ -105,33 +182,59 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  
+
   try {
     let result;
-    
+
     switch (name) {
+      case 'campaign_builder':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await campaignBuilder(args as any);
+        break;
       case 'fetch_url':
-        result = await fetchUrl(args as { url: string });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await fetchUrl(args as any);
         break;
       case 'extract_content':
-        result = await extractContent(args as { html: string });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await extractContent(args as any);
         break;
       case 'semantic_analyze':
-        result = await semanticAnalyze(args as { text: string });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await semanticAnalyze(args as any);
         break;
-      case 'generate_ads':
-        result = await generateAds(args as { summary: string; brand_tone: string; persona: string; keywords: string[]; platforms: string[] });
+      case 'account_audit':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await accountAudit(args as any);
         break;
-      case 'audience_builder':
-        result = await audienceBuilder(args as { persona: string; keywords: string[]; category: string });
+      case 'strategy_engine':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await strategyEngine(args as any);
         break;
-      case 'campaign_builder':
-        result = await campaignBuilder(args as unknown as CampaignBuilderInput);
+      case 'audience_constructor':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await audienceConstructor(args as any);
+        break;
+      case 'placement_intelligence':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await placementIntelligence(args as any);
+        break;
+      case 'creative_strategy':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await creativeStrategy(args as any);
+        break;
+      case 'budget_optimizer':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await budgetOptimizer(args as any);
+        break;
+      case 'campaign_orchestrator':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await campaignOrchestrator(args as any);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
-    
+
     return {
       content: [
         {
@@ -155,6 +258,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
+  process.env.NODE_OPTIONS = '--max-old-space-size=8192';
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('Adyn Marketing Agent MCP server running on stdio');
