@@ -99,9 +99,20 @@ export async function POST(req: NextRequest) {
       job.currentStep = 'Preparing campaign parameters';
       await job.save();
 
-      // Skip fetching Meta account data as per user request (AI intelligence based only)
-      const cachedMetaData = {};
-      const metaAccountId = 'CONNECTED_ACCOUNT';
+      /*
+      // Fetch the actual Meta access token for the user
+      const MetaAccount = (await import('@/models/MetaAccount')).default;
+      const metaAccount = await MetaAccount.findOne({ userId, isActive: true });
+
+      const metaAccessToken = metaAccount?.accessToken;
+      const metaAccountId = metaAccount?.accountId || 'act_PLACEHOLDER';
+
+      if (!metaAccessToken) {
+        console.warn(`⚠️ No active Meta access token found for user ${userId}. Falling back to limited/mock targeting.`);
+      }
+      */
+      const metaAccessToken = undefined;
+      const metaAccountId = 'act_PLACEHOLDER';
 
       job.progress = 30;
       job.currentStep = 'Analyzing product and generating campaign strategy';
@@ -112,7 +123,8 @@ export async function POST(req: NextRequest) {
         campaign_purpose: campaignPurpose,
         budget: budget || 1000,
         geo_targets: geoTargets || ['US'],
-        ad_account_id: metaAccountId
+        ad_account_id: metaAccountId,
+        meta_access_token: metaAccessToken
       };
 
       console.log('⏳ Calling campaign builder (DIRECT - NO MCP)...');
@@ -178,7 +190,9 @@ export async function POST(req: NextRequest) {
             main_competitors: [],
             competitive_advantages: [],
             market_positioning: 'AI-optimized positioning',
-            differentiation_strategy: 'Data-driven approach'
+            differentiation_strategy: semanticData.competitor_analysis?.differentiation_strategy || 'Data-driven approach',
+            gap_analysis: semanticData.competitor_analysis?.gap_analysis,
+            win_strategy: semanticData.competitor_analysis?.win_strategy
           },
           market_size_estimation: semanticData.market_size_estimation || {
             total_addressable_market: 'AI-estimated market',

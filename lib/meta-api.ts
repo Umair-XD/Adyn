@@ -236,9 +236,33 @@ export class MetaAPIClient {
   }
 
   /**
-   * Search for targeting options
+   * Search for targeting interests
    */
-  async searchTargeting(query: string, type: string, limit: number = 25): Promise<unknown> {
+  async searchInterests(query: string, limit: number = 25): Promise<any[]> {
+    const response = await this.makeRequest('search', 'GET', {
+      type: 'adinterest',
+      q: query,
+      limit
+    });
+    return response.data || [];
+  }
+
+  /**
+   * Get interest suggestions based on seed interests
+   */
+  async getInterestSuggestions(interestIds: string[], limit: number = 25): Promise<any[]> {
+    const response = await this.makeRequest('search', 'GET', {
+      type: 'adinterestsuggestion',
+      interest_list: JSON.stringify(interestIds),
+      limit
+    });
+    return response.data || [];
+  }
+
+  /**
+   * Search for targeting options (generic)
+   */
+  async searchTargeting(query: string, type: string, limit: number = 25): Promise<any> {
     const response = await this.makeRequest('search', 'GET', {
       type: 'adTargetingCategory',
       class: type,
@@ -360,7 +384,7 @@ export class MetaAPIClient {
       // For business accounts, we need to use the owned_ad_accounts edge
       endpoint = `${businessId}/owned_ad_accounts`;
     }
-    
+
     const response = await this.makeRequest(endpoint, 'GET', {
       fields: 'id,name,account_id,account_status,currency,timezone_name,business'
     });
@@ -377,7 +401,7 @@ export class MetaAPIClient {
   }> {
     // Get business info
     const business = await this.getBusinessAccount(businessId);
-    
+
     // Try to get portfolios, but handle gracefully if not available
     let portfolios: MetaPortfolio[] = [];
     try {
@@ -385,7 +409,7 @@ export class MetaAPIClient {
     } catch {
       console.log('Portfolios not available for this business account');
     }
-    
+
     // Get ad accounts for each portfolio (if any)
     const portfoliosWithAccounts = await Promise.all(
       portfolios.map(async (portfolio) => {
@@ -398,19 +422,19 @@ export class MetaAPIClient {
         }
       })
     );
-    
+
     // Get all business ad accounts
     const allBusinessAccounts = await this.getAdAccounts(businessId);
-    
+
     // Find direct ad accounts (not in any portfolio)
     const portfolioAccountIds = portfoliosWithAccounts
       .flatMap(p => p.adAccounts)
       .map(acc => acc.account_id);
-    
+
     const directAdAccounts = allBusinessAccounts.filter(
       acc => !portfolioAccountIds.includes(acc.account_id)
     );
-    
+
     return {
       business,
       portfolios: portfoliosWithAccounts,
@@ -436,14 +460,14 @@ export class MetaAPIClient {
     const params: Record<string, unknown> = {
       fields: 'event_name,count,unique_count'
     };
-    
+
     if (startDate) {
-      params.time_range = JSON.stringify({ 
-        since: startDate, 
-        until: endDate || new Date().toISOString().split('T')[0] 
+      params.time_range = JSON.stringify({
+        since: startDate,
+        until: endDate || new Date().toISOString().split('T')[0]
       });
     }
-    
+
     // Use the correct endpoint for pixel events
     const response = await this.makeRequest(`${pixelId}/events`, 'GET', params);
     return response.data;
@@ -454,14 +478,14 @@ export class MetaAPIClient {
     const params: Record<string, unknown> = {
       fields: 'event_name,count,unique_count,cost_per_action_type'
     };
-    
+
     if (startDate) {
-      params.time_range = JSON.stringify({ 
-        since: startDate, 
-        until: endDate || new Date().toISOString().split('T')[0] 
+      params.time_range = JSON.stringify({
+        since: startDate,
+        until: endDate || new Date().toISOString().split('T')[0]
       });
     }
-    
+
     try {
       // Try the insights endpoint first
       const response = await this.makeRequest(`${pixelId}/insights`, 'GET', params);
@@ -610,7 +634,7 @@ export class MetaAPIClient {
   // Get all campaigns with complete data for an account
   async getAllCampaignsComplete(accountId: string, includeInsights: boolean = true): Promise<CompleteCampaignData[]> {
     const campaigns = await this.getCampaigns(accountId);
-    
+
     const completeCampaigns = await Promise.all(
       campaigns.map(async (campaign) => {
         try {
@@ -872,11 +896,11 @@ export class MetaAPIClient {
     const params: Record<string, unknown> = {
       fields: 'impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions'
     };
-    
+
     if (dateRange) {
       params.time_range = dateRange;
     }
-    
+
     const response = await this.makeRequest(`${campaignId}/insights`, 'GET', params);
     return response.data[0] || {};
   }
@@ -885,11 +909,11 @@ export class MetaAPIClient {
     const params: Record<string, unknown> = {
       fields: 'impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions'
     };
-    
+
     if (dateRange) {
       params.time_range = dateRange;
     }
-    
+
     const response = await this.makeRequest(`${adSetId}/insights`, 'GET', params);
     return response.data[0] || {};
   }
@@ -974,19 +998,19 @@ export class MetaAPIClient {
       level: options?.level || 'campaign',
       limit: options?.limit || 100
     };
-    
+
     if (options?.dateRange) {
       params.time_range = options.dateRange;
     }
-    
+
     if (options?.breakdowns) {
       params.breakdowns = options.breakdowns.join(',');
     }
-    
+
     if (options?.actionBreakdowns) {
       params.action_breakdowns = options.actionBreakdowns.join(',');
     }
-    
+
     const response = await this.makeRequest(`act_${accountId}/insights`, 'GET', params);
     return response.data || [];
   }
@@ -995,11 +1019,11 @@ export class MetaAPIClient {
     const params: Record<string, unknown> = {
       fields: 'impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type'
     };
-    
+
     if (dateRange) {
       params.time_range = dateRange;
     }
-    
+
     const response = await this.makeRequest(`${adId}/insights`, 'GET', params);
     return response.data[0] || {};
   }
@@ -1016,11 +1040,11 @@ export class MetaAPIClient {
       limit: options?.limit || 50,
       sort: [`${options?.metric || 'ctr'}:descending`]
     };
-    
+
     if (options?.dateRange) {
       params.time_range = options.dateRange;
     }
-    
+
     if (options?.objective) {
       params.filtering = JSON.stringify([{
         field: 'objective',
@@ -1028,7 +1052,7 @@ export class MetaAPIClient {
         value: options.objective
       }]);
     }
-    
+
     const response = await this.makeRequest(`act_${accountId}/insights`, 'GET', params);
     return response.data || [];
   }
@@ -1041,10 +1065,10 @@ export class MetaAPIClient {
     limit?: number;
     sortBy?: 'roas' | 'ctr' | 'conversions' | 'spend';
   }): Promise<Array<CompleteCampaignData & { performance_score: number }>> {
-    const { 
-      dateRange = { 
-        since: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-        until: new Date().toISOString().split('T')[0] 
+    const {
+      dateRange = {
+        since: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        until: new Date().toISOString().split('T')[0]
       },
       minSpend = 100,
       minROAS = 2.0,
@@ -1067,7 +1091,7 @@ export class MetaAPIClient {
         const conversions = parseFloat((insightData.conversions as string) || '0');
         const conversionValue = parseFloat((insightData.conversion_values as string) || '0');
         const roas = spend > 0 ? conversionValue / spend : 0;
-        
+
         return spend >= minSpend && roas >= minROAS && conversions > 0;
       })
       .map((insight: unknown) => {
@@ -1077,19 +1101,19 @@ export class MetaAPIClient {
         const impressions = parseFloat((insightData.impressions as string) || '0');
         const conversions = parseFloat((insightData.conversions as string) || '0');
         const conversionValue = parseFloat((insightData.conversion_values as string) || '0');
-        
+
         const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
         const roas = spend > 0 ? conversionValue / spend : 0;
         const cpc = clicks > 0 ? spend / clicks : 0;
         const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
-        
+
         // Calculate performance score (0-100)
         const roasScore = Math.min(roas * 10, 50); // Max 50 points for ROAS
         const ctrScore = Math.min(ctr * 5, 25); // Max 25 points for CTR
         const conversionScore = Math.min(conversionRate * 2.5, 25); // Max 25 points for conversion rate
-        
+
         const performance_score = roasScore + ctrScore + conversionScore;
-        
+
         return {
           ...insightData,
           performance_metrics: {
@@ -1150,10 +1174,10 @@ export class MetaAPIClient {
     level?: 'campaign' | 'adset' | 'ad';
     breakdowns?: string[];
   }): Promise<unknown[]> {
-    const { 
-      dateRange = { 
-        since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-        until: new Date().toISOString().split('T')[0] 
+    const {
+      dateRange = {
+        since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        until: new Date().toISOString().split('T')[0]
       },
       level = 'adset',
       breakdowns = ['age', 'gender', 'country', 'region', 'impression_device', 'platform_position']
@@ -1194,10 +1218,10 @@ export class MetaAPIClient {
     insights: MetaInsights;
     performance_score: number;
   }>> {
-    const { 
-      dateRange = { 
-        since: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-        until: new Date().toISOString().split('T')[0] 
+    const {
+      dateRange = {
+        since: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        until: new Date().toISOString().split('T')[0]
       },
       minSpend = 50,
       limit = 50
@@ -1223,14 +1247,14 @@ export class MetaAPIClient {
         const impressions = parseFloat((insightData.impressions as string) || '0');
         const conversions = parseFloat((insightData.conversions as string) || '0');
         const conversionValue = parseFloat((insightData.conversion_values as string) || '0');
-        
+
         const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
         const roas = spend > 0 ? conversionValue / spend : 0;
         const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
-        
+
         // Performance score for creatives
         const performance_score = (ctr * 0.4) + (roas * 10 * 0.4) + (conversionRate * 0.2);
-        
+
         return {
           ...insightData,
           performance_score
@@ -1298,10 +1322,10 @@ export class MetaAPIClient {
     devices: unknown[];
     placements: unknown[];
   }> {
-    const { 
-      dateRange = { 
-        since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-        until: new Date().toISOString().split('T')[0] 
+    const {
+      dateRange = {
+        since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        until: new Date().toISOString().split('T')[0]
       },
       campaignIds,
       adsetIds
@@ -1329,11 +1353,11 @@ export class MetaAPIClient {
       for (const breakdown of category.breakdowns) {
         try {
           let insights;
-          
+
           if (campaignIds && campaignIds.length > 0) {
             // Get insights for specific campaigns
             insights = await Promise.all(
-              campaignIds.map(campaignId => 
+              campaignIds.map(campaignId =>
                 this.makeRequest(`${campaignId}/insights`, 'GET', {
                   fields: 'impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,conversions,conversion_values',
                   breakdowns: [breakdown],
@@ -1346,7 +1370,7 @@ export class MetaAPIClient {
           } else if (adsetIds && adsetIds.length > 0) {
             // Get insights for specific adsets
             insights = await Promise.all(
-              adsetIds.map(adsetId => 
+              adsetIds.map(adsetId =>
                 this.makeRequest(`${adsetId}/insights`, 'GET', {
                   fields: 'impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,conversions,conversion_values',
                   breakdowns: [breakdown],

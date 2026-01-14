@@ -256,7 +256,6 @@ async function createCreativeStrategyForAdSet(
       }
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const performancePredictions: { [creative_id: string]: any } = {};
     object.creative_variants.forEach((variant, index) => {
       performancePredictions[`${adset.adset_id}_creative_${index + 1}`] = variant.performance_prediction;

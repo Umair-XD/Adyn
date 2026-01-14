@@ -14,6 +14,7 @@ import { mapToODAX } from './odax-objectives';
 export interface CampaignInput {
   campaign_name: string;
   budget_total?: number;
+  duration_days?: number;
   budget_per_adset?: number;
   creative_assets: Array<{
     type: 'image' | 'video' | 'carousel';
@@ -62,6 +63,7 @@ export interface AdSetStrategy {
 }
 
 export interface StrategyResult {
+  campaign_name: string;
   approach: 'DISCOVERY_FIRST' | 'HYBRID' | 'PERFORMANCE_SCALING';
   campaign_objective: string;
   timeline: {
@@ -91,8 +93,9 @@ export interface StrategyResult {
 }
 
 const strategySchema = z.object({
+  campaign_name: z.string(),
   approach: z.enum(['DISCOVERY_FIRST', 'HYBRID', 'PERFORMANCE_SCALING']),
-  campaign_objective: z.string(),
+  campaign_objective: z.enum(['OUTCOME_SALES', 'OUTCOME_LEADS', 'OUTCOME_TRAFFIC', 'OUTCOME_AWARENESS', 'OUTCOME_ENGAGEMENT']),
   timeline: z.object({
     phase_1_days: z.number().optional(),
     phase_2_start: z.string().optional(),
@@ -136,59 +139,50 @@ const strategySchema = z.object({
 
 export async function strategyEngine(input: {
   audit_result: AuditResult;
+  semantic_result: any; // Using any for flexibility or can define interface
   business_goal: 'PURCHASE' | 'LEAD' | 'TRAFFIC' | 'AWARENESS' | 'ENGAGEMENT';
   campaign_input: CampaignInput;
 }): Promise<StrategyResult> {
 
-  const { audit_result, business_goal, campaign_input } = input;
+  const { audit_result, semantic_result, business_goal, campaign_input } = input;
 
-  const prompt = `You are a Meta Ads strategy expert. Based on the account audit, create an optimal campaign strategy.
+  const prompt = `You are an elite Meta Ads Strategist. Create a high-performance campaign strategy by synthesizing account data with deep semantic intelligence.
+ 
+ ACCOUNT AUDIT ANALYSIS:
+ - Data Level: ${audit_result.data_level}
+ - Pixel Health: ${audit_result.pixel_health}
+ - Risks: ${audit_result.risks.join(', ')}
+ 
+ PRODUCT & MARKET INTELLIGENCE (SEMANTIC):
+ - Core Hook: ${semantic_result.core_hook || 'N/A'}
+ - Value Proposition: ${semantic_result.value_proposition}
+ - Target Segments: ${JSON.stringify(semantic_result.target_segments)}
+ - Deep Interests: ${JSON.stringify(semantic_result.keywords)} (USE THESE as a base for ad set targeting)
+ - COMPETITOR AUDIT: ${JSON.stringify(semantic_result.competitor_analysis?.main_competitors)}
+ - GAP ANALYSIS: ${semantic_result.competitor_analysis?.gap_analysis}
+ - WIN STRATEGY: ${semantic_result.competitor_analysis?.win_strategy}
+ 
+ CAMPAIGN REQUIREMENTS:
+ - Business Goal: ${business_goal}
+ - Suggested Base Name: ${campaign_input.campaign_name}
+ - Total Budget: $${campaign_input.budget_total || 1000}
+ - Geos: ${campaign_input.desired_geos?.join(', ') || 'Global'}
 
-ACCOUNT AUDIT ANALYSIS:
-- Data Level: ${audit_result.data_level}
-- Total Spend (90d): $${audit_result.account_summary.last_90_days.total_spend}
-- Total Conversions: ${audit_result.account_summary.last_90_days.total_conversions}
-- Average CPA: $${audit_result.account_summary.last_90_days.avg_cpa}
-- Average ROAS: ${audit_result.account_summary.last_90_days.avg_roas}
-- Pixel Health: ${audit_result.pixel_health}
-- Custom Audiences: ${audit_result.account_summary.audience_sizes.custom}
-- Risks: ${audit_result.risks.join(', ')}
+ STRATEGY REQUIREMENTS:
+ 1. CAMPAIGN NAME: Generate a strategic Meta campaign name that MUST include the Product Name/Brand (e.g., "[Brand Name] | [Hook/Goal] | [Date]"). Do NOT just use the Suggested Base Name.
+ 
+ STRATEGY RULES:
+ 1. ADSET VARIETY: Design 3-4 adsets. At least one must be "Interest Stacked" using the Deep Interests provided.
+ 2. COMPETITIVE EDGE: In the 'rationale', explain how each adset leverages the WIN STRATEGY to beat the specific local competitors identified.
+ 3. INTEREST DEPTH: For 'interest' adsets, provide 5-8 specific interests in 'audience_parameters.interests' that align with the Deep Interests list.
+ 4. ODAX COMPLIANCE: 'campaign_objective' MUST be one of: OUTCOME_SALES, OUTCOME_LEADS, OUTCOME_TRAFFIC, OUTCOME_AWARENESS, OUTCOME_ENGAGEMENT.
 
-CAMPAIGN REQUIREMENTS:
-- Business Goal: ${business_goal}
-- Campaign Name: ${campaign_input.campaign_name}
-- Total Budget: $${campaign_input.budget_total || 1000}
-- Max AdSets: ${campaign_input.flags?.max_adsets || 4}
-- Creative Assets: ${campaign_input.creative_assets.length} assets
-- Geos: ${campaign_input.desired_geos?.join(', ') || 'Global'}
-- Constraints: ${JSON.stringify(campaign_input.constraints || {})}
-
-VALID ODAX OBJECTIVES:
-- OUTCOME_SALES
-- OUTCOME_LEADS
-- OUTCOME_TRAFFIC
-- OUTCOME_AWARENESS
-- OUTCOME_ENGAGEMENT
-- OUTCOME_APP_PROMOTION
-
-STRATEGY RULES:
-1. ZERO_DATA/LOW_DATA → Discovery/Hybrid approach with traffic/engagement focus
-2. RICH_DATA → Performance scaling with conversion focus
-3. Each AdSet must have exactly ONE audience type
-4. Budget allocation must ensure 50+ optimization events per week per AdSet
-5. TOTAL CREATIVE LIMIT: You MUST NOT exceed 5 total creative variants across the entire campaign. Allocate variants strategically (e.g., 2 for top ad sets, 1 for others) to stay within the 5-variant limit.
-6. REGIONAL FOCUS: Prioritize trends, competitors, and cultural context of the provided Geos: ${campaign_input.desired_geos?.join(', ') || 'Global'}. Focus on origin-specific data rather than global generalizations.
-7. ODAX COMPLIANCE: The 'campaign_objective' field MUST be one of the VALID ODAX OBJECTIVES listed above. Do NOT include descriptions or notes in this field.
-
-Create a comprehensive strategy that:
-- Determines the optimal approach based on data quality
-- Designs 2-4 AdSets with distinct audiences focused on the target region
-- Allocates budget for learning phase success
-- Sets realistic performance expectations
-- Provides clear optimization triggers and timeline
-- Includes risk mitigation strategies (regional specific)
-
-Return detailed strategy with clear AI reasoning for all decisions.`;
+ Create a comprehensive strategy that:
+ - Explains exactly how we will out-market local competitors based on the Gap Analysis.
+ - Utilizes the Deep Interests to reach high-intent clusters.
+ - Allocates budget based on the specific regional opportunity.
+ 
+ Return detailed strategy with clear AI reasoning.`;
 
   try {
     const { object, usage } = await generateObject({
@@ -216,12 +210,13 @@ Return detailed strategy with clear AI reasoning for all decisions.`;
   } catch (error) {
     // Fallback to rule-based strategy if AI fails
     console.error('AI strategy generation failed, using fallback:', error);
-    return createFallbackStrategy(audit_result, business_goal, campaign_input);
+    return createFallbackStrategy(audit_result, semantic_result, business_goal, campaign_input);
   }
 }
 
 function createFallbackStrategy(
   audit_result: AuditResult,
+  semantic_result: any,
   business_goal: string,
   campaign_input: CampaignInput
 ): StrategyResult {
@@ -299,7 +294,8 @@ function createFallbackStrategy(
       thresholds: { min_ctr: 1.0, max_cpm: 50, max_frequency: 3.0 }
     },
     risk_mitigation: audit_result.risks,
-    ai_reasoning: 'Fallback rule-based strategy due to AI generation failure'
+    ai_reasoning: 'Fallback rule-based strategy due to AI generation failure',
+    campaign_name: `${semantic_result?.summary?.split(' ')[0] || 'Adyn'} | ${campaign_input.campaign_name || 'Campaign'}`
   };
 }
 

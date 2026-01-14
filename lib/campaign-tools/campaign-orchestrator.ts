@@ -6,24 +6,17 @@
  */
 
 export interface CampaignStructure {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   audit: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   strategy: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   audiences: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   placements: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   creatives: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   budgets: any[];
 }
 
 export interface APIPayload {
   endpoint: string;
   method: 'POST' | 'GET' | 'PUT' | 'DELETE';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: Record<string, any>;
   dependencies?: string[];
   validation_rules?: string[];
@@ -554,7 +547,6 @@ function createRollbackPlan(): Array<{
   ];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function cleanTargetingPayload(targeting: any): any {
   // Remove any invalid or empty targeting parameters
   const cleaned = { ...targeting };
@@ -567,8 +559,9 @@ function cleanTargetingPayload(targeting: any): any {
   });
 
   // Ensure required fields
-  if (!cleaned.geo_locations) {
-    cleaned.geo_locations = { countries: ['US'] };
+  // Ensure geo_locations structure exists if not deleted above
+  if (!cleaned.geo_locations && targeting.geo_locations) {
+    cleaned.geo_locations = targeting.geo_locations;
   }
 
   if (!cleaned.age_min) cleaned.age_min = 18;
@@ -577,7 +570,6 @@ function cleanTargetingPayload(targeting: any): any {
   return cleaned;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function addTrackingToURL(url: string, trackingParams: any): string {
   const separator = url.includes('?') ? '&' : '?';
   const params = new URLSearchParams(trackingParams).toString();

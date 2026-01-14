@@ -23,7 +23,6 @@ export interface AdSetWithAudience {
   adset_id: string;
   name: string;
   type: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   targeting: any;
   audience_size_estimate: { min: number; max: number };
 }
@@ -41,7 +40,6 @@ export interface PlacementResult {
   creative_requirements: Array<{
     placement: string;
     required_formats: string[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recommended_specs: any;
   }>;
   performance_expectations: {

@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "setup": "npm install",
+    "test:campaign": "tsx scripts/test-campaign.ts",
+    "test:enhanced-sync": "tsx scripts/test-enhanced-sync.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^2.0.21",

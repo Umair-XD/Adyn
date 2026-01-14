@@ -66,10 +66,11 @@ export async function budgetOptimizer(input: {
   strategy: { approach: string };
   adsets: AdSetWithCreatives[];
   total_budget: number;
+  duration_days?: number;
   constraints?: BudgetConstraints;
 }): Promise<{ budget_optimizations: BudgetOptimizationResult[] }> {
 
-  const { strategy, adsets, total_budget, constraints } = input;
+  const { strategy, adsets, total_budget, duration_days = 30, constraints } = input;
   const budgetOptimizations: BudgetOptimizationResult[] = [];
 
   // Calculate budget allocation weights
@@ -83,6 +84,7 @@ export async function budgetOptimizer(input: {
       adset,
       allocatedBudget,
       strategy.approach,
+      duration_days,
       constraints
     );
 
@@ -90,7 +92,7 @@ export async function budgetOptimizer(input: {
   }
 
   // Validate total budget allocation
-  validateBudgetAllocation(budgetOptimizations, total_budget);
+  validateBudgetAllocation(budgetOptimizations, total_budget, duration_days);
 
   return { budget_optimizations: budgetOptimizations };
 }
@@ -142,6 +144,7 @@ async function optimizeBudgetForAdSet(
   adset: AdSetWithCreatives,
   allocatedBudget: number,
   approach: string,
+  duration_days: number,
   constraints?: BudgetConstraints
 ): Promise<BudgetOptimizationResult> {
 
@@ -170,7 +173,7 @@ async function optimizeBudgetForAdSet(
   };
 
   // Determine budget type and amount
-  const dailyBudget = Math.max(allocatedBudget / 7, 10); // Minimum $10/day
+  const dailyBudget = Math.max(allocatedBudget / duration_days, 5); // Minimum $5/day instead of $10 to be more flexible
 
   if (constraints?.min_daily_budget && dailyBudget < constraints.min_daily_budget) {
     result.budget_strategy.daily_budget = constraints.min_daily_budget;
@@ -395,18 +398,19 @@ function identifyRiskFactors(
 
 function validateBudgetAllocation(
   optimizations: BudgetOptimizationResult[],
-  totalBudget: number
+  totalBudget: number,
+  duration_days: number
 ): void {
 
   const allocatedDaily = optimizations.reduce((sum, opt) =>
     sum + (opt.budget_strategy.daily_budget || 0), 0
   );
 
-  const weeklyTotal = allocatedDaily * 7;
+  const totalDurationBudget = allocatedDaily * (duration_days || 30);
 
-  if (weeklyTotal > totalBudget * 1.1) {
+  if (totalDurationBudget > totalBudget * 1.05) { // Tighten to 5% buffer
     // Adjust budgets proportionally if over-allocated
-    const scaleFactor = totalBudget / weeklyTotal;
+    const scaleFactor = totalBudget / totalDurationBudget;
 
     for (const opt of optimizations) {
       if (opt.budget_strategy.daily_budget) {

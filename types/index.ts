@@ -44,10 +44,17 @@ export interface SemanticAnalyzeOutput {
     regional_competitors: string[];
   };
   competitor_analysis: {
-    main_competitors: string[];
+    main_competitors: Array<{
+      name: string;
+      region: string;
+      estimated_price_range: string;
+      core_strategy: string;
+    }>;
     competitive_advantages: string[];
     market_positioning: string;
     differentiation_strategy: string;
+    gap_analysis?: string;
+    win_strategy?: string;
   };
   market_size_estimation: {
     total_addressable_market: string;

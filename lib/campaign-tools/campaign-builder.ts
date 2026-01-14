@@ -18,7 +18,9 @@ export interface CampaignBuilderInput {
     budget: number;
     geo_targets: string[];
     ad_account_id?: string;
+    meta_access_token?: string;
     raw_meta_account_data?: any;
+    duration_days?: number;
 }
 
 export async function campaignBuilder(input: CampaignBuilderInput) {
@@ -76,8 +78,10 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
             value_proposition: analysis.value_proposition,
             target_audience: analysis.audience_persona,
             keywords: analysis.keywords?.slice(0, 10),
-            target_segments: analysis.target_segments?.map(s => s.segment),
-            main_competitors: analysis.competitor_analysis?.main_competitors,
+            target_segments: analysis.target_segments?.map((s: any) => s.segment),
+            geographic_analysis: analysis.geographic_analysis,
+            competitor_analysis: analysis.competitor_analysis,
+            market_size_estimation: analysis.market_size_estimation,
             usage_tokens: analysis.usage
         };
 
@@ -137,10 +141,12 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
 
         const strategy = await strategyEngine({
             audit_result: auditResult as any,
+            semantic_result: analysis,
             business_goal: businessGoalMap[input.campaign_purpose] || 'TRAFFIC',
             campaign_input: {
-                campaign_name: `${analysis.category} - ${input.campaign_purpose.toUpperCase()} - ${new Date().toISOString().split('T')[0]}`,
+                campaign_name: `${analysis.category} - ${input.campaign_purpose.toUpperCase()} - ${input.geo_targets.join('/')} - ${new Date().toISOString().split('T')[0]}`,
                 budget_total: input.budget,
+                duration_days: input.duration_days || 30,
                 creative_assets: baseAssets,
                 desired_geos: input.geo_targets
             }
@@ -182,13 +188,14 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         const { audiences } = await audienceConstructor({
             strategy: strategy,
             audience_requirements: audienceReqs as any,
-            desired_geos: input.geo_targets
+            desired_geos: input.geo_targets,
+            meta_access_token: input.meta_access_token
         });
 
         progressiveResults.steps.audiences = {
             status: 'completed',
             audiences_created: audiences.length,
-            audience_details: audiences.map(a => ({
+            audience_details: audiences.map((a: any) => ({
                 name: a.name,
                 type: a.type,
                 estimated_reach: a.estimated_reach,
@@ -198,7 +205,7 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         };
 
         // Collect all warnings
-        audiences.forEach(a => {
+        audiences.forEach((a: any) => {
             if (a.validation_messages.length > 0) {
                 progressiveResults.warnings.push(...a.validation_messages);
             }
@@ -207,7 +214,7 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         // 6. Placement Intelligence
         console.log('Step 6: Optimizing Placements...');
         progressiveResults.current_step = 'placements';
-        const adsetsForPlacement = audiences.map(a => ({
+        const adsetsForPlacement = audiences.map((a: any) => ({
             adset_id: a.adset_id,
             name: a.name,
             type: a.type,
@@ -235,9 +242,9 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         // 7. Creative Strategy
         console.log('Step 7: Generating Creatives (Enforcing 5 Variant Limit)...');
         progressiveResults.current_step = 'creatives';
-        const adsetsForCreative = adsetsForPlacement.map(adset => {
-            const placement = placement_strategies.find(p => p.adset_id === adset.adset_id);
-            const strat = strategy.adset_strategies.find(s => s.name === adset.name);
+        const adsetsForCreative = adsetsForPlacement.map((adset: any) => {
+            const placement = placement_strategies.find((p: any) => p.adset_id === adset.adset_id);
+            const strat = strategy.adset_strategies.find((s: any) => s.name === adset.name);
             return {
                 ...adset,
                 creative_count: strat?.creative_count || 1, // Use our re-capped count
@@ -249,9 +256,9 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
             adsets: adsetsForCreative,
             creative_assets: baseAssets,
             brand_guidelines: {
-                tone: 'professional',
-                voice: analysis.brand_tone,
-                key_messages: [analysis.value_proposition, analysis.unique_selling_point],
+                tone: mapBrandTone(analysis.brand_tone || 'professional'),
+                voice: analysis.brand_tone || 'professional',
+                key_messages: [analysis.value_proposition, analysis.unique_selling_point].filter(msg => typeof msg === 'string' && msg.length > 0) as string[],
                 avoid_words: ['cheap', 'spam'],
             }
         });
@@ -273,8 +280,8 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         // 8. Budget Optimization
         console.log('Step 8: Finalizing Budget...');
         progressiveResults.current_step = 'budget';
-        const adsetsForBudget = adsetsForCreative.map(adset => {
-            const creative = creative_strategies.find(c => c.adset_id === adset.adset_id);
+        const adsetsForBudget = adsetsForCreative.map((adset: any) => {
+            const creative = creative_strategies.find((c: any) => c.adset_id === adset.adset_id);
             return {
                 ...adset,
                 creative_count: creative?.creative_variants.length || 0,
@@ -288,7 +295,8 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         const { budget_optimizations } = await budgetOptimizer({
             strategy: { approach: strategy.approach },
             adsets: adsetsForBudget,
-            total_budget: input.budget
+            total_budget: input.budget,
+            duration_days: input.duration_days || 30
         });
 
         progressiveResults.steps.budget = {
@@ -340,7 +348,7 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         progressiveResults.summary = {
             product: analysis.summary,
             strategy: strategy.approach,
-            campaign_name: strategy.campaign_objective,
+            campaign_name: strategy.campaign_name,
             total_budget: input.budget,
             adsets_created: audiences.length,
             creatives_generated: totalCreatives,
@@ -368,4 +376,16 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
             error: error instanceof Error ? error.message : 'Campaign generation failed'
         };
     }
+}
+
+/**
+ * Maps generic brand tone strings to valid BrandGuidelines tone enum
+ */
+function mapBrandTone(tone: string): 'professional' | 'casual' | 'urgent' | 'friendly' | 'authoritative' {
+    const lower = tone.toLowerCase();
+    if (lower.includes('urgent') || lower.includes('hype')) return 'urgent';
+    if (lower.includes('casual') || lower.includes('youth') || lower.includes('energetic')) return 'casual';
+    if (lower.includes('friendly') || lower.includes('approachable')) return 'friendly';
+    if (lower.includes('authoritative') || lower.includes('premium')) return 'authoritative';
+    return 'professional';
 }

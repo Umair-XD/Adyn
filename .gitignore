@@ -77,3 +77,6 @@ logs
 tmp/
 temp/
 *.tmp
+
+# Testing
+test-results.md

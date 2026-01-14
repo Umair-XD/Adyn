@@ -10,7 +10,6 @@ import { AdSetStrategy } from './strategy-engine';
 export interface AudienceRequirement {
   type: 'broad' | 'interest' | 'retargeting' | 'lookalike';
   name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parameters: Record<string, any>;
 }
 
@@ -66,13 +65,14 @@ export async function audienceConstructor(input: {
   strategy: { adset_strategies: AdSetStrategy[] };
   audience_requirements: AudienceRequirement[];
   desired_geos: string[];
+  meta_access_token?: string;
 }): Promise<{ audiences: AudienceResult[] }> {
 
-  const { strategy, desired_geos } = input;
+  const { strategy, desired_geos, meta_access_token } = input;
   const audiences: AudienceResult[] = [];
 
   for (const adsetStrategy of strategy.adset_strategies) {
-    const audience = await constructAudienceForAdSet(adsetStrategy, desired_geos);
+    const audience = await constructAudienceForAdSet(adsetStrategy, desired_geos, meta_access_token);
     audiences.push(audience);
   }
 
@@ -90,7 +90,7 @@ export async function audienceConstructor(input: {
   return { audiences };
 }
 
-async function constructAudienceForAdSet(strategy: AdSetStrategy, desired_geos: string[]): Promise<AudienceResult> {
+async function constructAudienceForAdSet(strategy: AdSetStrategy, desired_geos: string[], meta_access_token?: string): Promise<AudienceResult> {
   const audience: AudienceResult = {
     adset_id: `adset_${strategy.name.toLowerCase().replace(/\s+/g, '_')}`,
     name: strategy.name,
@@ -121,7 +121,7 @@ async function constructAudienceForAdSet(strategy: AdSetStrategy, desired_geos: 
       await constructLookalikeAudience(audience, strategy);
       break;
     case 'interest':
-      await constructInterestAudience(audience, strategy);
+      await constructInterestAudience(audience, strategy, meta_access_token);
       break;
     case 'broad':
       await constructBroadAudience(audience, strategy);
@@ -194,7 +194,8 @@ async function constructLookalikeAudience(
 
 async function constructInterestAudience(
   audience: AudienceResult,
-  strategy: AdSetStrategy
+  strategy: AdSetStrategy,
+  meta_access_token?: string
 ): Promise<void> {
   const { interests } = strategy.audience_parameters;
 
@@ -205,12 +206,19 @@ async function constructInterestAudience(
   }
 
   // Validate interests using real Meta IDs
-  const validatedInterests = await validateInterests(interests);
+  const validatedInterests = await validateInterests(interests, meta_access_token);
 
   if (validatedInterests.length === 0) {
     audience.validation_status = 'ERROR';
-    audience.validation_messages.push('No valid Meta interests found. Check interest names or query Meta Targeting Search API.');
+    audience.validation_messages.push('No interests were provided or found.');
     return;
+  }
+
+  // Check if we are using unvalidated interests (test mode/no token)
+  const hasUnvalidated = validatedInterests.some(i => i.id.startsWith('PASS_THROUGH_'));
+  if (hasUnvalidated) {
+    audience.validation_status = 'WARNING';
+    audience.validation_messages.push('Some interests are unvalidated and require a live Meta token for ID mapping before launch.');
   }
 
   if (strategy.audience_parameters.type === 'interest_stacked') {
@@ -266,8 +274,12 @@ function applyExclusions(audience: AudienceResult, strategy: AdSetStrategy): voi
 }
 
 function validateAudience(audience: AudienceResult): void {
-  // Check minimum audience size
-  if (audience.estimated_reach.max < 1000) {
+  // Check minimum audience size (ignore if unvalidated for now)
+  const isUnvalidated = audience.targeting.flexible_spec?.some(spec =>
+    spec.interests?.some(i => i.id.startsWith('PASS_THROUGH_'))
+  );
+
+  if (audience.estimated_reach.max < 1000 && !isUnvalidated) {
     audience.validation_status = 'ERROR';
     audience.validation_messages.push('Audience too small - minimum 1,000 people required');
   }
@@ -341,13 +353,13 @@ function detectAudienceOverlaps(audiences: AudienceResult[]): string[] {
   return warnings;
 }
 
-async function validateInterests(interests: string[]): Promise<Array<{ id: string; name: string }>> {
+async function validateInterests(interests: string[], accessToken?: string): Promise<Array<{ id: string; name: string }>> {
   // Import the real interest validation service
   try {
     const { validateInterests: validateMetaInterests, formatInterestsForAPI } = await import('./meta-interests');
 
     // Get validated interests with real Meta IDs
-    const validatedInterests = await validateMetaInterests(interests);
+    const validatedInterests = await validateMetaInterests(interests, accessToken);
 
     // Format for API
     return formatInterestsForAPI(validatedInterests);

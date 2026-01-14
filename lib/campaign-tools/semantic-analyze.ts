@@ -28,10 +28,16 @@ export interface SemanticAnalyzeOutput {
     regional_competitors: string[];
   };
   competitor_analysis: {
-    main_competitors: string[];
+    main_competitors: Array<{
+      name: string;
+      region: string;
+      estimated_price_range: string;
+      core_strategy: string; // e.g., "Heavy influencer discounting", "Focus on durability/quality"
+    }>;
     competitive_advantages: string[];
     market_positioning: string;
-    differentiation_strategy: string;
+    gap_analysis: string; // What are they MISSING that we can fulfill?
+    win_strategy: string; // Specific tactic to beat these local competitors
   };
   market_size_estimation: {
     total_addressable_market: string;
@@ -70,10 +76,16 @@ const schema = z.object({
     regional_competitors: z.array(z.string())
   }),
   competitor_analysis: z.object({
-    main_competitors: z.array(z.string()),
+    main_competitors: z.array(z.object({
+      name: z.string(),
+      region: z.string(),
+      estimated_price_range: z.string(),
+      core_strategy: z.string()
+    })),
     competitive_advantages: z.array(z.string()),
     market_positioning: z.string(),
-    differentiation_strategy: z.string()
+    gap_analysis: z.string(),
+    win_strategy: z.string()
   }),
   market_size_estimation: z.object({
     total_addressable_market: z.string(),
@@ -85,25 +97,28 @@ const schema = z.object({
 
 export async function semanticAnalyze(input: SemanticAnalyzeInput): Promise<SemanticAnalyzeOutput> {
   try {
-    const prompt = `You are an elite Growth Marketing Auditor. Analyze the following product/service content and provide deep, actionable marketing insights to drive high-ROAS Meta campaigns.
+    const prompt = `You are an elite Growth Marketing Auditor and Competitive Intelligence Analyst. Analyze the following product/service content for high-ROAS Meta campaigns.
 
     PRODUCT CONTENT:
     ${input.text}
 
-    Your analysis must be sophisticated and expert-level.
-    1. Identify the "core hook" that will stop the scroll.
-    2. Define a value proposition that directly addresses the deepest pain point found in the content.
-    3. For geographic analysis, research and provide REAL cultural nuances and specific preferences for the target market.
-    4. HYPER-LOCAL COMPETITION: For the target market (e.g., Pakistan), identify ACTUAL local competitors found in that specific region. DO NOT hallucinate competitors from neighboring countries (e.g., do not suggest Indian brands for a Pakistani store unless they have a major footprint there).
-    5. Provide specific target segments with nuanced behaviors and pain points.
+    EXPERT ANALYSIS REQUIREMENTS:
+    1. CORE HOOK: Identify the scroll-stopping hook (visual + headline hook).
+    2. LOCAL COMPETITIVE AUDIT: 
+       - Identify 3-5 REAL competitors in the target region (e.g., if Pakistan, focus on brands like 'Negative Studios', 'Outfitters', 'Khaadi' if relevant, or niche D2C like 'ELO').
+       - CRITICAL: DO NOT suggest Indian brands for Pakistan (this is a common error). Verify the brand is ACTIVE in ${input.text.includes('Pakistan') || input.text.includes('.pk') ? 'Pakistan' : 'the target region'}.
+       - Analyze their "Core Strategy": Do they compete on price, quality, speed, or lifestyle?
+    3. GAP ANALYSIS: What is the market missing? Is it faster delivery? Better sizing? More vibrant colors? Define how Adyn's client wins.
+    4. INTEREST EXPANSION: Provide 15-20 specific Meta-style interests. Do not just say "Fashion". Say "Streetwear", "Sneakerhead culture", "Hypebeast", "Cargo pants enthusiasts", "Online shopping (fashion)", etc.
+    5. CULTURAL NUANCE: For Pakistan, mention specifics like 'Cash on Delivery usage', 'Weekend shopping habits', or 'Local influencers/vibe'.
 
-    Return a comprehensive JSON response. Be as specific as possible. Avoid generic filler words like "AI-optimized" or "High-potential". Give REAL marketing labels.`;
+    Return a comprehensive JSON response. Avoid generic "high-quality" filler. Give RAW, AGGRESSIVE marketing reconnaissance.`;
 
     const { object, usage } = await generateObject({
       model: openai('gpt-4o'),
       schema,
       prompt,
-      system: 'You are an elite D2C growth marketing expert. You have deep knowledge of specific regional markets including Pakistan, UAE, US, and UK. You provide hyper-accurate, non-hallucinated competitor and cultural data.',
+      system: 'You are an elite Growth Auditor. You specialize in hyper-local competitive intelligence for Pakistan, UAE, GCC, and Western markets. You never confuse neighboring regional brands.',
       temperature: 0.2
     });
 

@@ -433,9 +433,18 @@ export default function CampaignDetailPage() {
                     <p className="text-sm font-medium text-gray-700 mb-2">Main Competitors</p>
                     <div className="flex flex-wrap gap-2">
                       {result.product_summary.competitor_analysis.main_competitors?.map((competitor, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
-                          {competitor}
-                        </span>
+                        <div key={idx} className="group relative">
+                          <span className="px-3 py-1 bg-red-50 text-red-700 rounded-full text-xs font-semibold border border-red-100 shadow-sm cursor-help">
+                            {typeof competitor === 'string' ? competitor : competitor.name}
+                          </span>
+                          {typeof competitor !== 'string' && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                              <p className="font-bold border-b border-gray-700 pb-1 mb-1">{competitor.region}</p>
+                              <p className="mb-1"><span className="text-gray-400">Price:</span> {competitor.estimated_price_range}</p>
+                              <p><span className="text-gray-400">Strategy:</span> {competitor.core_strategy}</p>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -455,6 +464,32 @@ export default function CampaignDetailPage() {
                     <p className="text-sm font-medium text-gray-700">Differentiation Strategy</p>
                     <p className="text-gray-900 mt-1">{result.product_summary.competitor_analysis.differentiation_strategy}</p>
                   </div>
+                  {result.product_summary.competitor_analysis.gap_analysis && (
+                    <div className="col-span-1 md:col-span-2 bg-red-50/50 p-4 rounded-xl border border-red-100">
+                      <p className="text-xs font-bold text-red-800 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Gap Analysis (Local Opportunity)
+                      </p>
+                      <p className="text-sm text-red-900 leading-relaxed font-medium">
+                        {result.product_summary.competitor_analysis.gap_analysis}
+                      </p>
+                    </div>
+                  )}
+                  {result.product_summary.competitor_analysis.win_strategy && (
+                    <div className="col-span-1 md:col-span-2 bg-green-50/50 p-4 rounded-xl border border-green-100">
+                      <p className="text-xs font-bold text-green-800 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Winning Tactic
+                      </p>
+                      <p className="text-sm text-green-900 leading-relaxed font-medium">
+                        {result.product_summary.competitor_analysis.win_strategy}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -767,21 +802,21 @@ export default function CampaignDetailPage() {
                     <div className="space-y-4">
                       {result.intelligent_campaign_data.adset_payloads.map((adset, index) => (
                         <div key={index} className="border border-gray-200 rounded-lg p-4">
-                          <h4 className="font-semibold text-gray-800 mb-3">{adset.name}</h4>
+                          <h4 className="font-semibold text-gray-800 mb-3">{adset.payload?.name || adset.name || 'Untitled Ad Set'}</h4>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <p className="text-sm font-medium text-gray-700 mb-2">Targeting</p>
                               <div className="text-sm text-gray-600 space-y-1">
-                                {adset.targeting ? (
+                                {(adset.payload?.targeting || adset.targeting) ? (
                                   <>
-                                    {adset.targeting.age_min && adset.targeting.age_max && (
-                                      <p>Age: {adset.targeting.age_min}-{adset.targeting.age_max}</p>
+                                    {(adset.payload?.targeting?.age_min || adset.targeting?.age_min) && (adset.payload?.targeting?.age_max || adset.targeting?.age_max) && (
+                                      <p>Age: {adset.payload?.targeting?.age_min || adset.targeting?.age_min}-{adset.payload?.targeting?.age_max || adset.targeting?.age_max}</p>
                                     )}
-                                    {adset.targeting.geo_locations?.countries && (
-                                      <p>Countries: {adset.targeting.geo_locations.countries.join(', ')}</p>
+                                    {(adset.payload?.targeting?.geo_locations?.countries || adset.targeting?.geo_locations?.countries) && (
+                                      <p>Countries: {(adset.payload?.targeting?.geo_locations?.countries || adset.targeting?.geo_locations?.countries).join(', ')}</p>
                                     )}
-                                    {adset.targeting.interests && adset.targeting.interests.length > 0 && (
-                                      <p>Interests: {adset.targeting.interests.slice(0, 3).map((i: any) => i.name).join(', ')}</p>
+                                    {(adset.payload?.targeting?.flexible_spec?.[0]?.interests || adset.targeting?.interests) && (
+                                      <p>Interests: {(adset.payload?.targeting?.flexible_spec?.[0]?.interests || adset.targeting?.interests).slice(0, 3).map((i: any) => i.name || i).join(', ')}</p>
                                     )}
                                   </>
                                 ) : (
@@ -792,16 +827,16 @@ export default function CampaignDetailPage() {
                             <div>
                               <p className="text-sm font-medium text-gray-700 mb-2">Optimization</p>
                               <div className="text-sm text-gray-600 space-y-1">
-                                {adset.optimization ? (
+                                {(adset.payload?.optimization_goal || adset.optimization) ? (
                                   <>
-                                    {adset.optimization.optimization_goal && (
-                                      <p>Goal: {adset.optimization.optimization_goal}</p>
+                                    {(adset.payload?.optimization_goal || adset.optimization?.optimization_goal) && (
+                                      <p>Goal: {adset.payload?.optimization_goal || adset.optimization?.optimization_goal}</p>
                                     )}
-                                    {adset.optimization.billing_event && (
-                                      <p>Billing: {adset.optimization.billing_event}</p>
+                                    {(adset.payload?.billing_event || adset.optimization?.billing_event) && (
+                                      <p>Billing: {adset.payload?.billing_event || adset.optimization?.billing_event}</p>
                                     )}
-                                    {adset.optimization.bid_strategy && (
-                                      <p>Bid Strategy: {adset.optimization.bid_strategy}</p>
+                                    {(adset.payload?.bid_strategy || adset.optimization?.bid_strategy) && (
+                                      <p>Bid Strategy: {adset.payload?.bid_strategy || adset.optimization?.bid_strategy}</p>
                                     )}
                                   </>
                                 ) : (
@@ -812,13 +847,13 @@ export default function CampaignDetailPage() {
                             <div>
                               <p className="text-sm font-medium text-gray-700 mb-2">Budget</p>
                               <div className="text-sm text-gray-600 space-y-1">
-                                {adset.budget ? (
+                                {(adset.payload?.daily_budget || adset.budget) ? (
                                   <>
-                                    {adset.budget.daily_budget && (
-                                      <p>Daily: ${adset.budget.daily_budget}</p>
+                                    {(adset.payload?.daily_budget || adset.budget?.daily_budget) && (
+                                      <p>Daily: ${ (adset.payload?.daily_budget / 100) || adset.budget?.daily_budget}</p>
                                     )}
-                                    {adset.budget.budget_type && (
-                                      <p>Type: {adset.budget.budget_type}</p>
+                                    {(adset.payload?.budget_type || adset.budget?.budget_type) && (
+                                      <p>Type: {adset.payload?.budget_type || adset.budget?.budget_type}</p>
                                     )}
                                   </>
                                 ) : (
@@ -840,7 +875,7 @@ export default function CampaignDetailPage() {
                     <div className="space-y-4">
                       {result.intelligent_campaign_data.creative_payloads.map((creative, index) => (
                         <div key={index} className="border border-gray-200 rounded-lg p-4">
-                          <h4 className="font-semibold text-gray-800 mb-3">{creative.creative.name}</h4>
+                          <h4 className="font-semibold text-gray-800 mb-3">{creative.payload?.name || creative.creative?.name || 'Untitled Creative'}</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm font-medium text-gray-700">Ad Set Reference</p>
@@ -848,19 +883,19 @@ export default function CampaignDetailPage() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-700">Call to Action</p>
-                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.call_to_action.type}</p>
+                              <p className="text-sm text-gray-600 mt-1">{(creative.payload?.object_story_spec?.link_data?.call_to_action?.type || creative.creative?.object_story_spec?.link_data?.call_to_action?.type)}</p>
                             </div>
                             <div className="md:col-span-2">
                               <p className="text-sm font-medium text-gray-700">Headline</p>
-                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.name}</p>
+                              <p className="text-sm text-gray-600 mt-1">{(creative.payload?.object_story_spec?.link_data?.name || creative.creative?.object_story_spec?.link_data?.name)}</p>
                             </div>
                             <div className="md:col-span-2">
                               <p className="text-sm font-medium text-gray-700">Primary Text</p>
-                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.message}</p>
+                              <p className="text-sm text-gray-600 mt-1">{(creative.payload?.object_story_spec?.link_data?.message || creative.creative?.object_story_spec?.link_data?.message)}</p>
                             </div>
                             <div className="md:col-span-2">
                               <p className="text-sm font-medium text-gray-700">Description</p>
-                              <p className="text-sm text-gray-600 mt-1">{creative.creative.object_story_spec.link_data.description}</p>
+                              <p className="text-sm text-gray-600 mt-1">{(creative.payload?.object_story_spec?.link_data?.description || creative.creative?.object_story_spec?.link_data?.description)}</p>
                             </div>
                           </div>
                         </div>
