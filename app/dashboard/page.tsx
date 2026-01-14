@@ -147,8 +147,8 @@ export default function DashboardPage() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">Meta Integration</h3>
-              <p className="text-sm text-gray-600">Connect Facebook/Instagram ads</p>
+              <h3 className="font-medium text-gray-900">Meta Ads Manager</h3>
+              <p className="text-sm text-gray-600">Campaigns, insights & AI recommendations</p>
             </div>
           </Link>
         </div>

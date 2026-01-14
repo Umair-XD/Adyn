@@ -902,7 +902,7 @@ export class MetaAPIClient {
     demographics?: unknown;
   }> {
     const audience = await this.makeRequest(audienceId, 'GET', {
-      fields: 'id,name,description,approximate_count,data_source,delivery_status,operation_status,opt_out_link,permission_for_actions,pixel_id,retention_days,rule,rule_aggregation,subtype,lookalike_spec,origin_audience_id,lookalike_audience_ids,seed_audience,exclusions,inclusions,customer_file_source,is_household,is_value_based,is_snapshot'
+      fields: 'id,name,description,approximate_count_lower_bound,approximate_count_upper_bound,data_source,delivery_status,operation_status,opt_out_link,permission_for_actions,pixel_id,retention_days,rule,rule_aggregation,subtype,lookalike_spec,origin_audience_id,lookalike_audience_ids,seed_audience,exclusions,inclusions,customer_file_source,is_household,is_value_based,is_snapshot'
     });
 
     // Get audience size
@@ -913,7 +913,7 @@ export class MetaAPIClient {
       });
       size = sizeResponse.approximate_count_upper_bound || 0;
     } catch {
-      size = audience.approximate_count || 0;
+      size = (audience.approximate_count_upper_bound || audience.approximate_count_lower_bound || 0) as number;
     }
 
     // Get overlap analysis with other audiences (if available)
@@ -948,7 +948,7 @@ export class MetaAPIClient {
     if (audience.origin_audience_id) {
       try {
         source_audience = await this.makeRequest(audience.origin_audience_id, 'GET', {
-          fields: 'id,name,approximate_count,data_source'
+          fields: 'id,name,approximate_count_lower_bound,approximate_count_upper_bound,data_source'
         });
       } catch {
         // Source audience might not be accessible
@@ -970,7 +970,7 @@ export class MetaAPIClient {
     actionBreakdowns?: string[];
   }): Promise<unknown[]> {
     const params: Record<string, unknown> = {
-      fields: 'campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type,cost_per_conversion,objective,optimization_goal,targeting',
+      fields: 'campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type,cost_per_conversion,objective,optimization_goal',
       level: options?.level || 'campaign',
       limit: options?.limit || 100
     };
@@ -1011,7 +1011,7 @@ export class MetaAPIClient {
     objective?: string;
   }): Promise<unknown[]> {
     const params: Record<string, unknown> = {
-      fields: 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type,creative,targeting',
+      fields: 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,impressions,clicks,spend,cpm,cpc,ctr,reach,frequency,actions,action_values,conversions,conversion_values,cost_per_action_type,creative',
       level: 'ad',
       limit: options?.limit || 50,
       sort: [`${options?.metric || 'ctr'}:descending`]
@@ -1408,7 +1408,7 @@ export class MetaAPIClient {
   // Audience Management
   async getCustomAudiences(accountId: string): Promise<unknown[]> {
     const response = await this.makeRequest(`act_${accountId}/customaudiences`, 'GET', {
-      fields: 'id,name,description,approximate_count,data_source,delivery_status'
+      fields: 'id,name,description,approximate_count_lower_bound,approximate_count_upper_bound,data_source,delivery_status,subtype'
     });
     return response.data;
   }

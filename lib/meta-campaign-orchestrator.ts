@@ -1,4 +1,3 @@
-import { mcpManager } from './mcp-client';
 import MetaAPIClient from './meta-api';
 import { calculateTokenUsage, aggregateTokenUsage, aggregateModuleUsage, calculateCost, TokenUsage } from './token-estimator';
 import MetaAccountCache from '@/models/MetaAccountCache';
@@ -99,144 +98,23 @@ export class MetaCampaignOrchestrator {
    */
   async createCampaign(request: CampaignRequest): Promise<CampaignExecutionResult> {
     const executionLog: CampaignExecutionResult['execution_log'] = [];
-    const aiUsageTracking: TokenUsage[] = []; // Track AI usage across all MCP calls
 
-    try {
-      // NEW APPROACH: Use intelligent campaign constructor for complete flow
-      if (request.product_url) {
-        // Fetch raw account data first
-        const rawAccountData = await this.fetchRawAccountData(request.ad_account_id);
-        this.logStep(executionLog, 1, 'Fetch raw account data', true, rawAccountData);
+    // Scratch path creation now requires a pre-built campaign structure.
+    // Scratch-to-Campaign-with-MCP is deprecated in favor of local campaign builder.
+    this.logStep(executionLog, -1, 'Direct scratch creation not supported without campaign data', false);
 
-        // Map business goal to campaign purpose
-        const campaignPurpose = this.mapBusinessGoalToPurpose(request.business_goal);
-
-        // Use intelligent campaign constructor for complete flow
-        const constructorResult = await mcpManager.callTool('adyn', 'enhanced_intelligent_campaign_constructor', {
-          product_url: request.product_url,
-          campaign_purpose: campaignPurpose,
-          budget: request.budget_total || 1000,
-          geo_targets: request.desired_geos || ['US'],
-          raw_meta_account_data: rawAccountData,
-          ad_account_id: request.ad_account_id
-        }) as { content: unknown };
-
-        const constructorContent = Array.isArray(constructorResult.content) ? constructorResult.content[0] : constructorResult.content;
-        const campaignData = JSON.parse((constructorContent as { text?: string })?.text || '{}');
-
-        // Track AI usage from intelligent constructor
-        if (campaignData.usage) {
-          const usage = calculateTokenUsage('intelligent_campaign_constructor', {
-            product_url: request.product_url,
-            campaign_purpose: campaignPurpose,
-            budget: request.budget_total || 1000,
-            geo_targets: request.desired_geos || ['US']
-          }, campaignData);
-          aiUsageTracking.push(usage);
-        }
-
-        this.logStep(executionLog, 2, 'Intelligent campaign construction', true, campaignData);
-
-        // Execute the API sequence with the constructed payloads
-        const executionResult = await this.executeIntelligentAPISequence(campaignData, request.ad_account_id, executionLog);
-
-        // Calculate total AI usage and costs
-        const totalAiUsage = aggregateTokenUsage(aiUsageTracking);
-        const totalCost = calculateCost(totalAiUsage);
-        const moduleBreakdown = aggregateModuleUsage(aiUsageTracking);
-
-        return {
-          success: executionResult.success,
-          campaign_id: executionResult.campaign_id,
-          adset_ids: executionResult.adset_ids,
-          creative_ids: executionResult.creative_ids,
-          ad_ids: executionResult.ad_ids,
-          execution_log: executionLog,
-          mcp_audit: { product_fingerprint: campaignData.product_fingerprint },
-          mcp_strategy: { ai_reasoning: campaignData.ai_reasoning },
-          api_payloads_used: campaignData,
-          support_alerts: campaignData.risks?.map((risk: string) => ({
-            type: 'RISK_WARNING',
-            message: risk,
-            severity: 'MEDIUM'
-          })) || [],
-          product_insights: {
-            fingerprint: campaignData.product_fingerprint,
-            assumptions: campaignData.assumptions
-          },
-          ai_usage_summary: {
-            total_tokens: totalAiUsage.total,
-            total_cost: totalCost,
-            by_tool: moduleBreakdown.map(module => ({
-              tool: module.module,
-              tokens: module.totalTokens,
-              cost: module.cost
-            }))
-          }
-        };
-      }
-
-      // FALLBACK: Original flow if no product URL provided
-      return await this.executeOriginalFlow(request, executionLog);
-
-    } catch (error) {
-      this.logStep(executionLog, -1, 'Campaign creation failed', false, null, error instanceof Error ? error.message : 'Unknown error');
-
-      // Send error to Support MCP for analysis
-      if (error instanceof Error) {
-        try {
-          const errorAnalysis = await mcpManager.callTool('support', 'error_decoder', {
-            api_error: {
-              code: 1,
-              message: error.message,
-              type: 'EXECUTION_ERROR'
-            },
-            context: {
-              endpoint: 'campaign_creation',
-              account_id: request.ad_account_id
-            }
-          }) as { content: unknown };
-
-          const errorContent = Array.isArray(errorAnalysis.content) ? errorAnalysis.content[0] : errorAnalysis.content;
-          const errorData = JSON.parse((errorContent as { text?: string })?.text || '{}');
-
-          return {
-            success: false,
-            execution_log: executionLog,
-            mcp_audit: null,
-            mcp_strategy: null,
-            api_payloads_used: [],
-            support_alerts: [{
-              type: 'ERROR_ANALYSIS',
-              message: errorData.human_explanation,
-              severity: errorData.severity
-            }]
-          };
-        } catch {
-          // Fallback if support MCP fails
-          return {
-            success: false,
-            execution_log: executionLog,
-            mcp_audit: null,
-            mcp_strategy: null,
-            api_payloads_used: [],
-            support_alerts: [{
-              type: 'CRITICAL_ERROR',
-              message: error.message,
-              severity: 'HIGH'
-            }]
-          };
-        }
-      }
-
-      return {
-        success: false,
-        execution_log: executionLog,
-        mcp_audit: null,
-        mcp_strategy: null,
-        api_payloads_used: []
-      };
-    }
+    return {
+      success: false,
+      execution_log: executionLog,
+      mcp_audit: null,
+      mcp_strategy: null,
+      api_payloads_used: [],
+      support_alerts: [{
+        type: 'DEPRECATION',
+        message: 'Direct scratch creation via Orchestrator is deprecated. Use the Campaign Builder flow.',
+        severity: 'HIGH'
+      }]
+    };
   }
 
   /**
@@ -318,7 +196,7 @@ export class MetaCampaignOrchestrator {
         console.warn(`⚠️ Invalid cached data structure for ${accountId}, falling back to empty context`);
         return {};
       }
-      
+
       return {
         insights: (cacheData as { insights?: unknown[] }).insights || [],
         pixels: (cacheData as { pixels?: unknown[] }).pixels || [],
@@ -418,30 +296,8 @@ export class MetaCampaignOrchestrator {
       return result;
 
     } catch (error) {
-      // Send error to Support MCP for analysis
-      try {
-        const errorAnalysis = await mcpManager.callTool('support', 'error_decoder', {
-          api_error: {
-            code: (error as { code?: number }).code || 1,
-            message: error instanceof Error ? error.message : 'Unknown API error',
-            type: 'API_EXECUTION_ERROR'
-          },
-          context: {
-            endpoint: 'api_execution',
-            account_id: accountId
-          }
-        }) as { content: unknown };
-
-        const errorContent = Array.isArray(errorAnalysis.content) ? errorAnalysis.content[0] : errorAnalysis.content;
-        const errorData = JSON.parse((errorContent as { text?: string })?.text || '{}');
-
-        this.logStep(executionLog, -1, 'API execution failed', false, null,
-          errorData.human_explanation);
-      } catch {
-        this.logStep(executionLog, -1, 'API execution failed', false, null,
-          error instanceof Error ? error.message : 'Unknown error');
-      }
-
+      this.logStep(executionLog, -1, 'API execution failed', false, null,
+        error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }
@@ -562,30 +418,8 @@ export class MetaCampaignOrchestrator {
       return result;
 
     } catch (error) {
-      // Send error to Support MCP for analysis
-      try {
-        const errorAnalysis = await mcpManager.callTool('support', 'error_decoder', {
-          api_error: {
-            code: (error as { code?: number }).code || 1,
-            message: error instanceof Error ? error.message : 'Unknown API error',
-            type: 'API_EXECUTION_ERROR'
-          },
-          context: {
-            endpoint: 'intelligent_api_execution',
-            account_id: accountId
-          }
-        }) as { content: unknown };
-
-        const errorContent = Array.isArray(errorAnalysis.content) ? errorAnalysis.content[0] : errorAnalysis.content;
-        const errorData = JSON.parse((errorContent as { text?: string })?.text || '{}');
-
-        this.logStep(executionLog, -1, 'API execution failed', false, null,
-          errorData.human_explanation);
-      } catch {
-        this.logStep(executionLog, -1, 'API execution failed', false, null,
-          error instanceof Error ? error.message : 'Unknown error');
-      }
-
+      this.logStep(executionLog, -1, 'API execution failed', false, null,
+        error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }

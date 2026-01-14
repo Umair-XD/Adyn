@@ -1,16 +1,16 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { fetchUrl } from './fetch-url.js';
-import { extractContent } from './extract-content.js';
-import { semanticAnalyze } from './semantic-analyze.js';
-import { strategyEngine } from './strategy-engine.js';
-import { audienceConstructor } from './audience-constructor.js';
-import { placementIntelligence } from './placement-intelligence.js';
-import { creativeStrategy } from './creative-strategy.js';
-import { budgetOptimizer } from './budget-optimizer.js';
-import { campaignOrchestrator } from './campaign-orchestrator.js';
-import { accountAudit } from './account-audit.js';
+import { fetchUrl } from './fetch-url';
+import { extractContent } from './extract-content';
+import { semanticAnalyze } from './semantic-analyze';
+import { strategyEngine } from './strategy-engine';
+import { audienceConstructor } from './audience-constructor';
+import { placementIntelligence } from './placement-intelligence';
+import { creativeStrategy } from './creative-strategy';
+import { budgetOptimizer } from './budget-optimizer';
+import { campaignOrchestrator } from './campaign-orchestrator';
+import { accountAudit } from './account-audit';
 
 export interface CampaignBuilderInput {
     product_url: string;
@@ -81,40 +81,29 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
             usage_tokens: analysis.usage
         };
 
-        // 3. Account Audit (or Mock)
-        console.log('Step 3: Account Intelligence...');
+        // 3. Account Intelligence (AI-driven only)
+        console.log('Step 3: Account Intelligence (AI-driven)...');
         progressiveResults.current_step = 'account_audit';
-        let auditResult;
-        if (input.raw_meta_account_data && input.raw_meta_account_data.insights) {
-            auditResult = await accountAudit({ account_data: input.raw_meta_account_data });
-        } else {
-            // Create a neutral/clean slate audit for new accounts
-            auditResult = {
-                data_level: 'ZERO_DATA',
-                account_summary: {
-                    last_90_days: { total_spend: 0, total_conversions: 0, avg_cpa: 0, avg_roas: 0 },
-                    audience_sizes: { custom: 0, lookalike: 0 }
-                },
-                pixel_health: 'UNKNOWN',
-                risks: ['No historical data available - Cold start strategy required']
-            };
-        }
 
-        // Cleanup: Remove raw data from memory after audit is done
-        if (input.raw_meta_account_data) {
-            console.log('🧹 Pruning raw Meta account data to free memory...');
-            delete (input as any).raw_meta_account_data;
-        }
+        // Skip raw account data, use purely AI intelligence for cold start/market trends
+        const auditResult = {
+            data_level: 'ZERO_DATA', // Default to clean slate for AI-driven trends
+            account_summary: {
+                last_90_days: { total_spend: 0, total_conversions: 0, avg_cpa: 0, avg_roas: 0 },
+                audience_sizes: { custom: 0, lookalike: 0 }
+            },
+            pixel_health: 'UNKNOWN',
+            risks: ['AI-driven strategy based on market trends and product analysis']
+        };
 
         progressiveResults.steps.account_audit = {
             status: 'completed',
             data_level: auditResult.data_level,
             pixel_health: auditResult.pixel_health,
-            total_spend: auditResult.account_summary?.last_90_days?.total_spend || 0,
             risks: auditResult.risks
         };
 
-        // Prepare Base Creative Assets from extracted images
+        // Prepare Base Creative Assets (Cap at 5 for the whole campaign)
         const baseAssets = content.images.slice(0, 5).map(img => ({
             type: 'image' as const,
             asset_url: img,
@@ -157,6 +146,18 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
             }
         });
 
+        // ENFORCE 5 CREATIVE LIMIT in strategy before proceeding
+        let currentTotalPlanned = strategy.adset_strategies.reduce((acc, s) => acc + s.creative_count, 0);
+        if (currentTotalPlanned > 5) {
+            console.log(`⚠️ Scaling down creative count from ${currentTotalPlanned} to 5...`);
+            // Simple logic: allocate 1 per adset, then distribute remaining to top adsets
+            strategy.adset_strategies.forEach(s => s.creative_count = 1);
+            let remaining = 5 - strategy.adset_strategies.length;
+            for (let i = 0; i < remaining; i++) {
+                strategy.adset_strategies[i % strategy.adset_strategies.length].creative_count += 1;
+            }
+        }
+
         progressiveResults.steps.strategy = {
             status: 'completed',
             approach: strategy.approach,
@@ -180,7 +181,8 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
 
         const { audiences } = await audienceConstructor({
             strategy: strategy,
-            audience_requirements: audienceReqs as any
+            audience_requirements: audienceReqs as any,
+            desired_geos: input.geo_targets
         });
 
         progressiveResults.steps.audiences = {
@@ -223,7 +225,7 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
             placements_optimized: placement_strategies.length,
             placement_summary: placement_strategies.map(p => ({
                 adset: p.name,
-                platforms: p.placements.facebook_positions.length > 0 ? 'Facebook' : '' +
+                platforms: (p.placements.facebook_positions.length > 0 ? 'Facebook' : '') +
                     (p.placements.instagram_positions.length > 0 ? ' Instagram' : ''),
                 total_positions: p.placements.facebook_positions.length + p.placements.instagram_positions.length,
                 warnings: p.warnings
@@ -231,12 +233,14 @@ export async function campaignBuilder(input: CampaignBuilderInput) {
         };
 
         // 7. Creative Strategy
-        console.log('Step 7: Generating Creatives...');
+        console.log('Step 7: Generating Creatives (Enforcing 5 Variant Limit)...');
         progressiveResults.current_step = 'creatives';
         const adsetsForCreative = adsetsForPlacement.map(adset => {
             const placement = placement_strategies.find(p => p.adset_id === adset.adset_id);
+            const strat = strategy.adset_strategies.find(s => s.name === adset.name);
             return {
                 ...adset,
+                creative_count: strat?.creative_count || 1, // Use our re-capped count
                 placements: placement?.placements || { facebook_positions: ['feed'], instagram_positions: ['stream'], audience_network_positions: [], messenger_positions: [] }
             };
         });

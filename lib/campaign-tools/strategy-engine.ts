@@ -7,8 +7,9 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from '../lib/ai-config.js';
-import { AuditResult } from './account-audit.js';
+import { openai } from '../ai-config';
+import { AuditResult } from './account-audit';
+import { mapToODAX } from './odax-objectives';
 
 export interface CampaignInput {
   campaign_name: string;
@@ -159,33 +160,46 @@ CAMPAIGN REQUIREMENTS:
 - Total Budget: $${campaign_input.budget_total || 1000}
 - Max AdSets: ${campaign_input.flags?.max_adsets || 4}
 - Creative Assets: ${campaign_input.creative_assets.length} assets
-- Geos: ${campaign_input.desired_geos?.join(', ') || 'US'}
+- Geos: ${campaign_input.desired_geos?.join(', ') || 'Global'}
 - Constraints: ${JSON.stringify(campaign_input.constraints || {})}
+
+VALID ODAX OBJECTIVES:
+- OUTCOME_SALES
+- OUTCOME_LEADS
+- OUTCOME_TRAFFIC
+- OUTCOME_AWARENESS
+- OUTCOME_ENGAGEMENT
+- OUTCOME_APP_PROMOTION
 
 STRATEGY RULES:
 1. ZERO_DATA/LOW_DATA → Discovery/Hybrid approach with traffic/engagement focus
 2. RICH_DATA → Performance scaling with conversion focus
 3. Each AdSet must have exactly ONE audience type
 4. Budget allocation must ensure 50+ optimization events per week per AdSet
-5. Creative count should match audience intent (retargeting=3, lookalike=4, interest=4, broad=5)
+5. TOTAL CREATIVE LIMIT: You MUST NOT exceed 5 total creative variants across the entire campaign. Allocate variants strategically (e.g., 2 for top ad sets, 1 for others) to stay within the 5-variant limit.
+6. REGIONAL FOCUS: Prioritize trends, competitors, and cultural context of the provided Geos: ${campaign_input.desired_geos?.join(', ') || 'Global'}. Focus on origin-specific data rather than global generalizations.
+7. ODAX COMPLIANCE: The 'campaign_objective' field MUST be one of the VALID ODAX OBJECTIVES listed above. Do NOT include descriptions or notes in this field.
 
 Create a comprehensive strategy that:
 - Determines the optimal approach based on data quality
-- Designs 2-4 AdSets with distinct audiences
+- Designs 2-4 AdSets with distinct audiences focused on the target region
 - Allocates budget for learning phase success
 - Sets realistic performance expectations
 - Provides clear optimization triggers and timeline
-- Includes risk mitigation strategies
+- Includes risk mitigation strategies (regional specific)
 
 Return detailed strategy with clear AI reasoning for all decisions.`;
 
   try {
     const { object, usage } = await generateObject({
-      model: openai('gpt-5'),
+      model: openai('gpt-4o'),
       schema: strategySchema,
       prompt,
-      system: 'You are a Meta Ads expert with deep knowledge of campaign strategy, audience targeting, and performance optimization. Make data-driven decisions based on account history and current best practices.',
-      temperature: 0.3
+      system: `You are an elite Meta Ads Strategist specializing in ${campaign_input.desired_geos?.join(', ') || 'Global'} growth marketing. 
+      Your task is to create a hyper-local strategy for a D2C brand. 
+      Analyze regional trends, local competitors, and cultural nuances specific to ${campaign_input.desired_geos?.join(', ') || 'the target region'}.
+      Use only valid ODAX objectives. Enforce a strict limit of 5 creative variants across the entire campaign.`,
+      temperature: 0.2
     });
 
     const result: StrategyResult = {
@@ -291,13 +305,13 @@ function createFallbackStrategy(
 
 function mapBusinessGoalToObjective(goal: string): string {
   const mapping: Record<string, string> = {
-    'PURCHASE': 'CONVERSIONS',
-    'LEAD': 'LEAD_GENERATION',
-    'TRAFFIC': 'LINK_CLICKS',
-    'AWARENESS': 'BRAND_AWARENESS',
-    'ENGAGEMENT': 'ENGAGEMENT'
+    'PURCHASE': 'OUTCOME_SALES',
+    'LEAD': 'OUTCOME_LEADS',
+    'TRAFFIC': 'OUTCOME_TRAFFIC',
+    'AWARENESS': 'OUTCOME_AWARENESS',
+    'ENGAGEMENT': 'OUTCOME_ENGAGEMENT'
   };
-  return mapping[goal] || 'LINK_CLICKS';
+  return mapping[goal] || 'OUTCOME_TRAFFIC';
 }
 
 function getSuccessMetric(goal: string): string {

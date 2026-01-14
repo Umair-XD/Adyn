@@ -12,46 +12,15 @@ interface Campaign {
   platforms: string[];
   generationResult: AdynOutput & {
     intelligent_campaign_data?: {
-      campaign_payload?: {
-        name: string;
-        objective: string;
-        status: string;
-        buying_type: string;
-      };
-      adset_payloads?: Array<{
-        name: string;
-        targeting: {
-          geo_locations: { countries: string[] };
-          age_min: number;
-          age_max: number;
-          interests?: Array<{ id: string; name: string }>;
-        };
-        optimization: {
-          optimization_goal: string;
-          billing_event: string;
-          bid_strategy: string;
-        };
-        budget: {
-          daily_budget: number;
-          budget_type: string;
-        };
-      }>;
-      creative_payloads?: Array<{
-        adset_ref: string;
-        creative: {
-          name: string;
-          object_story_spec: {
-            link_data: {
-              message: string;
-              name: string;
-              description: string;
-              call_to_action: {
-                type: string;
-              };
-            };
-          };
-        };
-      }>;
+      campaign_payload?: any;
+      adset_payloads?: any[];
+      creative_payloads?: any[];
+      ad_payloads?: any[];
+      api_execution_order?: any[];
+      validation_checklist?: any[];
+      risk_flags?: any[];
+      support_hooks?: any[];
+      rollback_plan?: any[];
       risks?: string[];
       assumptions?: string[];
       ai_reasoning?: string;
@@ -255,51 +224,77 @@ export default function CampaignDetailPage() {
             <div className="flex items-center gap-3">
               {/* Account Selector Dialog/Dropdown */}
               {showAccountSelector ? (
-                <div className="relative">
-                  <select
-                    value={selectedMetaAccountId}
-                    onChange={(e) => setSelectedMetaAccountId(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2 min-w-[200px]"
-                    disabled={metaActionLoading}
-                  >
-                    <option value="">Select Meta Account</option>
-                    {metaAccounts.map((account) => (
-                      <option key={account.accountId} value={account.accountId}>
-                        {account.accountName} ({account.accountId})
-                      </option>
-                    ))}
-                  </select>
-                  
-                  <div className="flex items-center gap-2 mt-2 absolute right-0 top-full bg-white p-2 shadow-lg rounded-lg border border-gray-200 z-10 w-[300px]">
-                    <button
-                      onClick={() => setShowAccountSelector(false)}
-                      className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                      disabled={metaActionLoading}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={createMetaCampaign}
-                      disabled={!selectedMetaAccountId || metaActionLoading}
-                      className="flex-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {metaActionLoading ? 'Creating...' : 'Confirm & Create'}
-                    </button>
+                <div className="absolute top-0 right-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="glass p-6 rounded-2xl shadow-2xl border border-white/40 w-80">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-bold text-gray-900">Select Target Account</h3>
+                      <button 
+                        onClick={() => setShowAccountSelector(false)}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                      {metaAccounts.map((account) => (
+                        <button
+                          key={account.accountId}
+                          onClick={() => setSelectedMetaAccountId(account.accountId)}
+                          className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-1 ${
+                            selectedMetaAccountId === account.accountId
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20'
+                              : 'bg-white/50 border-gray-100 hover:border-blue-300 text-gray-700'
+                          }`}
+                        >
+                          <span className="font-bold text-sm leading-tight">{account.accountName}</span>
+                          <span className={`text-[10px] ${selectedMetaAccountId === account.accountId ? 'text-blue-100' : 'text-gray-500'}`}>
+                            ID: {account.accountId}
+                          </span>
+                        </button>
+                      ))}
+                      {metaAccounts.length === 0 && (
+                        <p className="text-xs text-gray-500 italic text-center py-4">No accounts found</p>
+                      )}
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button
+                        onClick={createMetaCampaign}
+                        disabled={!selectedMetaAccountId || metaActionLoading}
+                        className="w-full py-3 premium-gradient text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        {metaActionLoading ? (
+                          <>
+                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                            Launching...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                            Confirm Deployment
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <button
                   onClick={() => {
-                    // Load accounts if not loaded
                     if (metaAccounts.length === 0) loadMetaAccounts();
                     setShowAccountSelector(true);
                   }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 whitespace-nowrap"
+                  className="px-5 py-2.5 premium-gradient text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition-all font-bold text-sm flex items-center gap-2 active:scale-95"
                 >
-                  <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
-                  <span>Create Meta Campaign</span>
+                  <span>Build Live Campaign</span>
                 </button>
               )}
             </div>
@@ -330,7 +325,7 @@ export default function CampaignDetailPage() {
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
-          {['overview', 'ads', 'audience', 'strategy', 'intelligent', 'stats'].map((tab) => (
+          {['overview', 'ads', 'audience', 'strategy', 'intelligent', 'payloads', 'stats'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -340,7 +335,7 @@ export default function CampaignDetailPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {tab === 'intelligent' ? '🚀 AI Campaign' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'intelligent' ? '🚀 AI Campaign' : tab === 'payloads' ? '📦 API Payloads' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </nav>
@@ -392,10 +387,12 @@ export default function CampaignDetailPage() {
                     <p className="text-lg font-semibold text-gray-900 mt-1">{result.product_summary.geographic_analysis.origin_country}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Primary Market Primary City Targeting</p>
+                    <p className="text-sm font-semibold text-blue-600 mb-2 flex items-center gap-2">
+                      <span className="text-lg">📍</span> Target Markets & Locations
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {result.product_summary.geographic_analysis.primary_markets?.map((market, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                        <span key={idx} className="px-4 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 text-sm font-medium shadow-sm">
                           {market}
                         </span>
                       ))}
@@ -599,13 +596,15 @@ export default function CampaignDetailPage() {
                 <p className="text-gray-900">{result.audience_targeting.age_range}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Primary Market Primary City Targeting</p>
-                <div className="space-y-1">
+                <p className="text-sm font-semibold text-blue-600 mb-3 flex items-center gap-2">
+                  <span className="text-lg">📍</span> Target Markets & Locations
+                </p>
+                <div className="flex flex-wrap gap-2">
                   {result.product_summary.geographic_analysis.primary_markets?.map((market, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm mr-2 mb-2 inline-block">
+                    <span key={idx} className="px-4 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 text-sm font-medium shadow-sm">
                       {market}
                     </span>
-                  )) || <p className="text-gray-500">No locations specified</p>}
+                  )) || <p className="text-gray-500 italic">No locations targetable</p>}
                 </div>
               </div>
               <div>
@@ -720,9 +719,19 @@ export default function CampaignDetailPage() {
               <div className="space-y-6">
                 {/* AI Reasoning */}
                 {result.intelligent_campaign_data.ai_reasoning && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-3">🧠 AI Strategy Reasoning</h3>
-                    <p className="text-blue-700">{result.intelligent_campaign_data.ai_reasoning}</p>
+                  <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 p-8 shadow-sm">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-600" />
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 premium-gradient rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 tracking-tight">Quantum Strategy Insights</h3>
+                    </div>
+                    <div className="text-gray-700 italic leading-relaxed text-lg pl-2 border-l-2 border-blue-100/50">
+                      "{result.intelligent_campaign_data.ai_reasoning}"
+                    </div>
                   </div>
                 )}
 
@@ -763,26 +772,58 @@ export default function CampaignDetailPage() {
                             <div>
                               <p className="text-sm font-medium text-gray-700 mb-2">Targeting</p>
                               <div className="text-sm text-gray-600 space-y-1">
-                                <p>Age: {adset.targeting.age_min}-{adset.targeting.age_max}</p>
-                                <p>Countries: {adset.targeting.geo_locations.countries.join(', ')}</p>
-                                {adset.targeting.interests && adset.targeting.interests.length > 0 && (
-                                  <p>Interests: {adset.targeting.interests.slice(0, 3).map(i => i.name).join(', ')}</p>
+                                {adset.targeting ? (
+                                  <>
+                                    {adset.targeting.age_min && adset.targeting.age_max && (
+                                      <p>Age: {adset.targeting.age_min}-{adset.targeting.age_max}</p>
+                                    )}
+                                    {adset.targeting.geo_locations?.countries && (
+                                      <p>Countries: {adset.targeting.geo_locations.countries.join(', ')}</p>
+                                    )}
+                                    {adset.targeting.interests && adset.targeting.interests.length > 0 && (
+                                      <p>Interests: {adset.targeting.interests.slice(0, 3).map((i: any) => i.name).join(', ')}</p>
+                                    )}
+                                  </>
+                                ) : (
+                                  <p className="text-gray-400">No targeting data available</p>
                                 )}
                               </div>
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-700 mb-2">Optimization</p>
                               <div className="text-sm text-gray-600 space-y-1">
-                                <p>Goal: {adset.optimization.optimization_goal}</p>
-                                <p>Billing: {adset.optimization.billing_event}</p>
-                                <p>Bid Strategy: {adset.optimization.bid_strategy}</p>
+                                {adset.optimization ? (
+                                  <>
+                                    {adset.optimization.optimization_goal && (
+                                      <p>Goal: {adset.optimization.optimization_goal}</p>
+                                    )}
+                                    {adset.optimization.billing_event && (
+                                      <p>Billing: {adset.optimization.billing_event}</p>
+                                    )}
+                                    {adset.optimization.bid_strategy && (
+                                      <p>Bid Strategy: {adset.optimization.bid_strategy}</p>
+                                    )}
+                                  </>
+                                ) : (
+                                  <p className="text-gray-400">No optimization data available</p>
+                                )}
                               </div>
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-700 mb-2">Budget</p>
                               <div className="text-sm text-gray-600 space-y-1">
-                                <p>Daily: ${adset.budget.daily_budget}</p>
-                                <p>Type: {adset.budget.budget_type}</p>
+                                {adset.budget ? (
+                                  <>
+                                    {adset.budget.daily_budget && (
+                                      <p>Daily: ${adset.budget.daily_budget}</p>
+                                    )}
+                                    {adset.budget.budget_type && (
+                                      <p>Type: {adset.budget.budget_type}</p>
+                                    )}
+                                  </>
+                                ) : (
+                                  <p className="text-gray-400">No budget data available</p>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1070,6 +1111,224 @@ export default function CampaignDetailPage() {
             ) : (
               <div className="text-center text-gray-600 py-8">
                 <p>No statistics available for this campaign</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'payloads' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">📦 API Payloads & AI Data</h2>
+            
+            {result.intelligent_campaign_data ? (
+              <div className="space-y-6">
+                {/* Campaign Payload */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-blue-600 px-6 py-3">
+                    <h3 className="text-lg font-semibold text-white">Campaign Payload</h3>
+                    <p className="text-blue-100 text-sm">POST to Meta API: /act_ACCOUNT_ID/campaigns</p>
+                  </div>
+                  <div className="p-6">
+                    <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-xs">
+                      <code>{JSON.stringify(result.intelligent_campaign_data.campaign_payload, null, 2)}</code>
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Ad Set Payloads */}
+                {result.intelligent_campaign_data.adset_payloads && result.intelligent_campaign_data.adset_payloads.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-green-600 px-6 py-3">
+                      <h3 className="text-lg font-semibold text-white">Ad Set Payloads ({result.intelligent_campaign_data.adset_payloads.length})</h3>
+                      <p className="text-green-100 text-sm">POST to Meta API: /act_ACCOUNT_ID/adsets</p>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {result.intelligent_campaign_data.adset_payloads.map((adset, idx) => (
+                        <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                            <h4 className="font-semibold text-gray-800">Ad Set {idx + 1}: {adset.name || adset.payload?.name}</h4>
+                          </div>
+                          <div className="p-4">
+                            <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-xs">
+                              <code>{JSON.stringify(adset, null, 2)}</code>
+                            </pre>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Creative Payloads */}
+                {result.intelligent_campaign_data.creative_payloads && result.intelligent_campaign_data.creative_payloads.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-purple-600 px-6 py-3">
+                      <h3 className="text-lg font-semibold text-white">Creative Payloads ({result.intelligent_campaign_data.creative_payloads.length})</h3>
+                      <p className="text-purple-100 text-sm">POST to Meta API: /act_ACCOUNT_ID/adcreatives</p>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {result.intelligent_campaign_data.creative_payloads.map((creative, idx) => (
+                        <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                            <h4 className="font-semibold text-gray-800">Creative {idx + 1}</h4>
+                          </div>
+                          <div className="p-4">
+                            <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-xs">
+                              <code>{JSON.stringify(creative, null, 2)}</code>
+                            </pre>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ad Payloads */}
+                {result.intelligent_campaign_data.ad_payloads && result.intelligent_campaign_data.ad_payloads.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-orange-600 px-6 py-3">
+                      <h3 className="text-lg font-semibold text-white">Ad Payloads ({result.intelligent_campaign_data.ad_payloads.length})</h3>
+                      <p className="text-orange-100 text-sm">POST to Meta API: /act_ACCOUNT_ID/ads</p>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {result.intelligent_campaign_data.ad_payloads.map((ad, idx) => (
+                        <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                            <h4 className="font-semibold text-gray-800">Ad {idx + 1}</h4>
+                          </div>
+                          <div className="p-4">
+                            <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-xs">
+                              <code>{JSON.stringify(ad, null, 2)}</code>
+                            </pre>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* API Execution Order */}
+                {result.intelligent_campaign_data.api_execution_order && result.intelligent_campaign_data.api_execution_order.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-indigo-600 px-6 py-3">
+                      <h3 className="text-lg font-semibold text-white">API Execution Order</h3>
+                      <p className="text-indigo-100 text-sm">Step-by-step guide for creating the campaign</p>
+                    </div>
+                    <div className="p-6">
+                      <div className="space-y-3">
+                        {result.intelligent_campaign_data.api_execution_order.map((step, idx) => (
+                          <div key={idx} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
+                            <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                              {step.step}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">{step.description}</h4>
+                              <p className="text-sm text-gray-600 mt-1">Endpoint: {step.endpoint}</p>
+                              <p className="text-sm text-green-600 mt-1">Success: {step.success_criteria}</p>
+                              <p className="text-sm text-red-600 mt-1">Error Handling: {step.error_handling}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Validation Checklist */}
+                {result.intelligent_campaign_data.validation_checklist && result.intelligent_campaign_data.validation_checklist.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-yellow-600 px-6 py-3">
+                      <h3 className="text-lg font-semibold text-white">Validation Checklist</h3>
+                      <p className="text-yellow-100 text-sm">Pre-deployment validation items</p>
+                    </div>
+                    <div className="p-6">
+                      <div className="space-y-2">
+                        {result.intelligent_campaign_data.validation_checklist.map((item, idx) => (
+                          <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                              item.status === 'REQUIRED' ? 'bg-red-100 text-red-700' :
+                              item.status === 'RECOMMENDED' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {item.status}
+                            </span>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">{item.item}</p>
+                              <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Risk Flags */}
+                {result.intelligent_campaign_data.risk_flags && result.intelligent_campaign_data.risk_flags.length > 0 && (
+                  <div className="bg-white border border-red-200 rounded-lg overflow-hidden">
+                    <div className="bg-red-600 px-6 py-3">
+                      <h3 className="text-lg font-semibold text-white">⚠️ Risk Flags</h3>
+                      <p className="text-red-100 text-sm">Potential issues identified by AI</p>
+                    </div>
+                    <div className="p-6">
+                      <div className="space-y-3">
+                        {result.intelligent_campaign_data.risk_flags.map((risk, idx) => (
+                          <div key={idx} className={`p-4 rounded-lg border-l-4 ${
+                            risk.severity === 'HIGH' ? 'bg-red-50 border-red-500' :
+                            risk.severity === 'MEDIUM' ? 'bg-yellow-50 border-yellow-500' :
+                            'bg-blue-50 border-blue-500'
+                          }`}>
+                            <div className="flex items-start gap-3">
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                risk.severity === 'HIGH' ? 'bg-red-600 text-white' :
+                                risk.severity === 'MEDIUM' ? 'bg-yellow-600 text-white' :
+                                'bg-blue-600 text-white'
+                              }`}>
+                                {risk.severity}
+                              </span>
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900">{risk.message}</p>
+                                <p className="text-sm text-gray-700 mt-1"><strong>Mitigation:</strong> {risk.mitigation}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Full AI Response Data */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 px-6 py-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Complete AI Response Data</h3>
+                      <p className="text-gray-300 text-sm">Full JSON output from campaign generation</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const dataStr = JSON.stringify(result.intelligent_campaign_data, null, 2);
+                        navigator.clipboard.writeText(dataStr);
+                        alert('Copied to clipboard!');
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    >
+                      Copy JSON
+                    </button>
+                  </div>
+                  <div className="p-6">
+                    <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-xs max-h-96 overflow-y-auto">
+                      <code>{JSON.stringify(result.intelligent_campaign_data, null, 2)}</code>
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ No API Payloads Available</h3>
+                <p className="text-yellow-700">
+                  This campaign doesn't have intelligent campaign data. Create a new campaign to see AI-generated Meta API payloads.
+                </p>
               </div>
             )}
           </div>

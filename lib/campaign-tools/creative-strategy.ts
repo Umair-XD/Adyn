@@ -7,7 +7,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from '../lib/ai-config.js';
+import { openai } from '../ai-config';
 
 export interface AdSetWithPlacements {
   adset_id: string;
@@ -145,7 +145,7 @@ export async function creativeStrategy(input: {
   creative_assets: BaseCreativeAsset[];
   brand_guidelines?: BrandGuidelines;
 }): Promise<{ creative_strategies: CreativeStrategyResult[] }> {
-  
+
   const { adsets, creative_assets, brand_guidelines } = input;
   const creativeStrategies: CreativeStrategyResult[] = [];
 
@@ -158,57 +158,53 @@ export async function creativeStrategy(input: {
 }
 
 async function createCreativeStrategyForAdSet(
-  adset: AdSetWithPlacements,
+  adset: AdSetWithPlacements & { creative_count?: number },
   assets: BaseCreativeAsset[],
   brandGuidelines?: BrandGuidelines
 ): Promise<CreativeStrategyResult> {
+
+  const targetCreativeCount = adset.creative_count || getTargetCreativeCount(adset.type);
+
+  const prompt = `You are an elite Meta Ads Creative Strategist. Create ${targetCreativeCount} sophisticated, high-performance creative variants for this ad set.
   
-  const targetCreativeCount = getTargetCreativeCount(adset.type);
+  ADSET CONTEXT:
+  - Name: ${adset.name}
+  - Type: ${adset.type}
+  - Placements: ${JSON.stringify(adset.placements)}
   
-  const prompt = `You are a Meta Ads creative strategist. Create ${targetCreativeCount} high-performing creative variants for this ad set.
+  CREATIVE ASSETS AVAILABLE:
+  ${assets.map((asset, i) => `
+  Asset ${i + 1}:
+  - Type: ${asset.type}
+  - Current Headlines: ${asset.headlines.join(', ')}
+  - Current Primary Texts: ${asset.primary_texts.join(', ')}
+  - CTA: ${asset.cta}
+  - Landing Page: ${asset.landing_page_url}
+  `).join('')}
+  
+  BRAND GUIDELINES:
+  - Tone: ${brandGuidelines?.tone || 'professional'}
+  - Voice: ${brandGuidelines?.voice || 'friendly and approachable'}
+  - Key Messages: ${brandGuidelines?.key_messages?.join(', ') || 'N/A'}
+  - Avoid Words: ${brandGuidelines?.avoid_words?.join(', ') || 'N/A'}
+  
+  CREATIVE STRATEGY RULES:
+  1. DO NOT be generic. Use direct, punchy copy that addresses the customer's psychology.
+  2. For ${adset.type === 'retargeting' ? 'Retargeting' : 'Cold Prospecting'}, use a specific hook-engine (Pain/Benefit/Curiosity).
+  3. Headlines must be 40 chars or less and highly relevant to the angle.
+  4. Primary Texts should vary in length: one short, one medium with bullets, one long-form story (if appropriate).
+  5. Include a specific hypothesis for WHY each variant will win (e.g., "Leverages loss aversion via limited-time offer hook").
+  6. Ensure total creative variants across all ad sets do not exceed current limit.
 
-ADSET CONTEXT:
-- Name: ${adset.name}
-- Type: ${adset.type}
-- Placements: ${JSON.stringify(adset.placements)}
-
-CREATIVE ASSETS AVAILABLE:
-${assets.map((asset, i) => `
-Asset ${i + 1}:
-- Type: ${asset.type}
-- Current Headlines: ${asset.headlines.join(', ')}
-- Current Primary Texts: ${asset.primary_texts.join(', ')}
-- CTA: ${asset.cta}
-- Landing Page: ${asset.landing_page_url}
-`).join('')}
-
-BRAND GUIDELINES:
-- Tone: ${brandGuidelines?.tone || 'professional'}
-- Voice: ${brandGuidelines?.voice || 'friendly and approachable'}
-- Key Messages: ${brandGuidelines?.key_messages?.join(', ') || 'N/A'}
-- Avoid Words: ${brandGuidelines?.avoid_words?.join(', ') || 'N/A'}
-
-CREATIVE STRATEGY REQUIREMENTS:
-1. Create ${targetCreativeCount} distinct creative variants with different angles:
-   - ${adset.type === 'retargeting' ? 'Focus on offer, urgency, social_proof' : 'Mix pain, benefit, curiosity, social_proof'}
-2. Each creative must have a clear hypothesis for why it will work
-3. Optimize copy for the specific audience type (${adset.type})
-4. Consider placement requirements (vertical for Stories/Reels, square for Feed)
-5. Include relevant hashtags for Instagram placements
-6. Predict performance metrics based on angle and audience type
-
-AUDIENCE-SPECIFIC GUIDELINES:
-${getAudienceSpecificGuidelines(adset.type)}
-
-Create compelling, scroll-stopping creatives that match the audience intent and placement requirements.`;
+  Create compelling, scroll-stopping creatives that match the audience intent and placement requirements. Avoid generic "Learn more about our product" filler.`;
 
   try {
     const { object, usage } = await generateObject({
-      model: openai('gpt-5'),
+      model: openai('gpt-4o'),
       schema: creativeSchema,
       prompt,
-      system: 'You are an expert Meta Ads creative strategist with deep knowledge of audience psychology, platform best practices, and performance optimization. Create data-driven creative strategies.',
-      temperature: 0.7
+      system: 'You are an elite Meta Ads creative strategist. You produce high-CTR ad copy that beats control versions in A/B tests. You understand buyer psychology and regional nuances.',
+      temperature: 0.6
     });
 
     // Convert AI output to our format
@@ -292,7 +288,7 @@ function getTargetCreativeCount(adsetType: string): number {
     'interest': 4,    // Test different angles
     'broad': 5        // More variety for algorithm
   };
-  
+
   return counts[adsetType] || 4;
 }
 
@@ -303,7 +299,7 @@ function getAudienceSpecificGuidelines(adsetType: string): string {
     'interest': 'Targeted by interests but cold audience. Hook with pain points or curiosity. Educate about your solution.',
     'broad': 'Cold, diverse audience. Use broad appeal, strong hooks, and clear value propositions. Test multiple angles.'
   };
-  
+
   return guidelines[adsetType] || 'General audience guidelines apply.';
 }
 
@@ -313,13 +309,13 @@ function createFallbackCreativeStrategy(
 ): CreativeStrategyResult {
   const targetCount = getTargetCreativeCount(adset.type);
   const angles = selectCreativeAngles(adset.type, targetCount);
-  
+
   const creativeVariants: CreativeVariant[] = [];
-  
+
   for (let i = 0; i < targetCount && i < assets.length; i++) {
     const asset = assets[i];
     const angle = angles[i % angles.length];
-    
+
     creativeVariants.push({
       adset_id: adset.adset_id,
       creative_id: `${adset.adset_id}_creative_${i + 1}`,
@@ -393,7 +389,7 @@ function getExpectedMetric(angle: string): 'CTR' | 'CVR' | 'ENGAGEMENT' {
     'urgency': 'CTR',
     'curiosity': 'ENGAGEMENT'
   };
-  
+
   return metrics[angle] || 'CTR';
 }
 
@@ -408,7 +404,7 @@ function mapCTAType(cta: string): string {
     'Book Now': 'BOOK_TRAVEL',
     'Apply Now': 'APPLY_NOW'
   };
-  
+
   return ctaMapping[cta] || 'LEARN_MORE';
 }
 

@@ -92,3 +92,21 @@
 body {
   @apply bg-background text-foreground;
 }
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .premium-gradient {
+    @apply bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700;
+  }
+
+  .premium-border {
+    @apply border border-transparent bg-gradient-to-r from-blue-500 to-purple-500 [mask:linear-gradient(#fff_0_0)_padding-box,linear-gradient(#fff_0_0)];
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+  }
+}

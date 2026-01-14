@@ -1,38 +1,83 @@
 import MetaAccountCache from '@/models/MetaAccountCache';
+import HistoricalInsights from '@/models/HistoricalInsights';
 import connectDB from './mongoose';
+import { MetaAPIClient } from './meta-api';
 
 /**
- * COMPREHENSIVE META DATA SYNC SERVICE
+ * ENHANCED META DATA SYNC SERVICE
  * 
- * This service fetches ALL Meta account data during integration
- * and stores it for lightning-fast campaign generation.
- * 
- * NO MORE RUNTIME API CALLS - Everything is pre-cached!
+ * This service fetches comprehensive Meta account data including:
+ * - All campaigns, ad sets, ads with complete details
+ * - Historical insights with performance metrics
+ * - Campaign success rates and patterns
+ * - Audience performance data
+ * - Creative performance analytics
+ * - Placement and demographic breakdowns
+ * - Winning campaign patterns
+ * - ROI and conversion tracking
  */
 
-export interface MetaSyncOptions {
+export interface EnhancedMetaSyncOptions {
   userId: string;
   metaAccountId: string;
   businessId: string;
   accessToken: string;
   forceRefresh?: boolean;
   timePeriod?: 'last_30_days' | 'last_90_days' | 'last_6_months' | 'last_year' | 'last_2_years' | 'last_5_years' | 'all_time';
+  includeHistoricalAnalysis?: boolean;
 }
 
-export class MetaDataSyncService {
+export interface CampaignSuccessMetrics {
+  campaignId: string;
+  campaignName: string;
+  objective: string;
+  totalSpend: number;
+  totalRevenue: number;
+  roas: number;
+  conversions: number;
+  conversionRate: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  reach: number;
+  impressions: number;
+  clicks: number;
+  frequency: number;
+  successScore: number; // 0-100 score based on multiple factors
+  performanceRating: 'excellent' | 'good' | 'average' | 'poor';
+  learningPhase: 'learning' | 'active' | 'mature';
+  dateRange: {
+    start: Date;
+    end: Date;
+  };
+}
+
+export interface WinningPattern {
+  patternType: 'targeting' | 'creative' | 'placement' | 'timing' | 'budget';
+  description: string;
+  successRate: number;
+  avgROAS: number;
+  avgCTR: number;
+  sampleSize: number;
+  recommendations: string[];
+}
+
+export class EnhancedMetaDataSyncService {
   private accessToken: string;
-  private baseUrl = 'https://graph.facebook.com/v18.0';
+  private metaClient: MetaAPIClient;
+  private baseUrl = 'https://graph.facebook.com/v21.0';
 
   constructor(accessToken: string) {
     this.accessToken = accessToken;
+    this.metaClient = new MetaAPIClient(accessToken);
   }
 
   /**
-   * MAIN SYNC FUNCTION - Fetches ALL Meta data and caches it
-   * Implements strict context separation: Ad Account vs Page vs Pixel
+   * MAIN ENHANCED SYNC FUNCTION
+   * Fetches ALL Meta data + performance analytics
    */
-  async syncCompleteAccountData(options: MetaSyncOptions): Promise<void> {
-    console.log(`🔄 Starting COMPLETE Meta data sync for account ${options.metaAccountId}`);
+  async syncEnhancedAccountData(options: EnhancedMetaSyncOptions): Promise<void> {
+    console.log(`🚀 Starting ENHANCED Meta data sync for account ${options.metaAccountId}`);
 
     await connectDB();
 
@@ -44,8 +89,8 @@ export class MetaDataSyncService {
       });
 
       if (existingCache && existingCache.isComplete &&
-        existingCache.lastUpdated > new Date(Date.now() - 24 * 60 * 60 * 1000)) {
-        console.log('✅ Meta data cache is fresh, skipping sync');
+        existingCache.lastUpdated > new Date(Date.now() - 12 * 60 * 60 * 1000)) { // 12 hours
+        console.log('✅ Enhanced Meta data cache is fresh, skipping sync');
         return;
       }
     }
@@ -62,79 +107,99 @@ export class MetaDataSyncService {
     );
 
     try {
-      console.log('📊 Fetching complete account data...');
-      console.log(`🔍 Account ID: ${options.metaAccountId}`);
-      console.log(`🔑 Access token length: ${options.accessToken.length}`);
-      console.log(`🏢 Business ID: ${options.businessId}`);
+      const formattedAccountId = options.metaAccountId.startsWith('act_') 
+        ? options.metaAccountId 
+        : `act_${options.metaAccountId}`;
 
-      // STRICT CONTEXT SEPARATION: Only fetch Ad Account data in Ad Account context
+      console.log('📊 Phase 1: Fetching core account data...');
+      
+      // 1. CORE ACCOUNT DATA
+      const accountData = await this.fetchAccountData(formattedAccountId);
+      console.log('✅ Account data fetched');
 
-      // 1. AD ACCOUNT DATA (Core account info only)
-      const accountData = await this.fetchAdAccountData(options.metaAccountId);
-      console.log('✅ Ad Account data fetched');
+      // 2. ALL CAMPAIGNS WITH COMPLETE DATA
+      console.log('📊 Phase 2: Fetching complete campaign structures...');
+      const completeCampaigns = await this.metaClient.getAllCampaignsComplete(
+        options.metaAccountId,
+        true // Include insights
+      );
+      console.log(`✅ ${completeCampaigns.length} complete campaigns fetched`);
 
-      // 2. CAMPAIGNS DATA (Ad Account context only)
-      const campaigns = await this.fetchAdAccountCampaigns(options.metaAccountId);
-      console.log(`✅ ${campaigns.length} campaigns fetched`);
+      // Extract structured data
+      const campaigns = completeCampaigns.map(c => c.campaign);
+      const adsets = completeCampaigns.flatMap(c => c.campaign.adsets?.map(a => a.adset) || []);
+      const ads = completeCampaigns.flatMap(c => 
+        c.campaign.adsets?.flatMap(a => a.adset.ads?.map(ad => ad.ad) || []) || []
+      );
 
-      // 3. AD SETS DATA (Ad Account context only)
-      const adsets = await this.fetchAdAccountAdSets(options.metaAccountId);
-      console.log(`✅ ${adsets.length} ad sets fetched`);
+      // 3. HISTORICAL INSIGHTS (Extended period)
+      console.log('📊 Phase 3: Fetching historical insights...');
+      const insights = await this.fetchHistoricalInsights(
+        formattedAccountId,
+        options.timePeriod || 'last_90_days'
+      );
+      console.log(`✅ ${insights.length} insight records fetched`);
 
-      // 4. ADS DATA (Ad Account context only)
-      const ads = await this.fetchAdAccountAds(options.metaAccountId);
-      console.log(`✅ ${ads.length} ads fetched`);
+      // 4. PLACEMENT PERFORMANCE DATA
+      console.log('📊 Phase 4: Fetching placement performance...');
+      const placementInsights = await this.fetchPlacementPerformance(
+        formattedAccountId,
+        options.timePeriod || 'last_90_days'
+      );
+      console.log(`✅ ${placementInsights.length} placement records fetched`);
 
-      // 5. INSIGHTS DATA (Ad Account context only)
-      const insights = await this.fetchAdAccountInsights(options.metaAccountId, options.timePeriod || 'last_90_days');
-      console.log(`✅ ${insights.length} insight records fetched for ${options.timePeriod || 'last_90_days'}`);
+      // 5. DEMOGRAPHIC PERFORMANCE DATA
+      console.log('📊 Phase 5: Fetching demographic performance...');
+      const demographicInsights = await this.fetchDemographicPerformance(
+        formattedAccountId,
+        options.timePeriod || 'last_90_days'
+      );
+      console.log(`✅ ${demographicInsights.length} demographic records fetched`);
 
-      // 6. CUSTOM AUDIENCES DATA (Ad Account context only)
-      const customAudiences = await this.fetchAdAccountCustomAudiences(options.metaAccountId);
+      // 6. CUSTOM AUDIENCES
+      console.log('📊 Phase 6: Fetching custom audiences...');
+      const customAudiences = await this.metaClient.getCustomAudiences(options.metaAccountId);
       console.log(`✅ ${customAudiences.length} custom audiences fetched`);
 
-      // 7. PIXELS DATA (Ad Account context only)
-      const pixels = await this.fetchAdAccountPixels(options.metaAccountId);
+      // 7. PIXELS
+      console.log('📊 Phase 7: Fetching pixels...');
+      const pixels = await this.metaClient.getPixels(options.metaAccountId);
       console.log(`✅ ${pixels.length} pixels fetched`);
 
-      // 8. PLACEMENT INSIGHTS (Expert Logic)
-      const placementInsights = await this.fetchPlacementInsights(options.metaAccountId, options.timePeriod || 'last_90_days');
-      console.log(`✅ ${placementInsights.length} placement breakdown records fetched`);
+      // 8. CAMPAIGN SUCCESS METRICS
+      console.log('📊 Phase 8: Calculating campaign success metrics...');
+      const successMetrics = await this.calculateCampaignSuccessMetrics(
+        completeCampaigns,
+        insights
+      );
+      console.log(`✅ Success metrics calculated for ${successMetrics.length} campaigns`);
 
-      // 9. DEMOGRAPHIC INSIGHTS (Expert Logic)
-      const demographicInsights = await this.fetchDemographicInsights(options.metaAccountId, options.timePeriod || 'last_90_days');
-      console.log(`✅ ${demographicInsights.length} demographic breakdown records fetched`);
+      // 9. WINNING PATTERNS ANALYSIS
+      console.log('📊 Phase 9: Analyzing winning patterns...');
+      const winningPatterns = await this.analyzeWinningPatterns(
+        completeCampaigns,
+        insights,
+        placementInsights,
+        demographicInsights
+      );
+      console.log(`✅ ${winningPatterns.length} winning patterns identified`);
 
-      // Store everything in cache with time period info
-      const endDate = new Date();
-      let startDate: Date;
+      // 10. TOP PERFORMING CREATIVES
+      console.log('📊 Phase 10: Analyzing creative performance...');
+      const topCreatives = await this.metaClient.getCreativePerformanceAnalysis(
+        options.metaAccountId,
+        {
+          dateRange: this.getDateRange(options.timePeriod || 'last_90_days'),
+          minSpend: 50,
+          limit: 50
+        }
+      );
+      console.log(`✅ ${topCreatives.length} top creatives analyzed`);
 
-      switch (options.timePeriod || 'last_90_days') {
-        case 'last_30_days':
-          startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_90_days':
-          startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_6_months':
-          startDate = new Date(endDate.getTime() - 180 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_year':
-          startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_2_years':
-          startDate = new Date(endDate.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_5_years':
-          startDate = new Date(endDate.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
-          break;
-        case 'all_time':
-          startDate = new Date(endDate.getTime() - 10 * 365 * 24 * 60 * 60 * 1000);
-          break;
-        default:
-          startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
-      }
+      // Calculate date range
+      const dateRange = this.getDateRangeObject(options.timePeriod || 'last_90_days');
 
+      // Store everything in cache
       await MetaAccountCache.findOneAndUpdate(
         { userId: options.userId, metaAccountId: options.metaAccountId },
         {
@@ -146,18 +211,19 @@ export class MetaDataSyncService {
           adsets,
           ads,
           insights,
-          customAudiences,
-          pixels,
-          // New Breakdown Data
           placementInsights,
           demographicInsights,
-
+          customAudiences,
+          pixels,
+          
+          // Enhanced analytics data
+          campaignSuccessMetrics: successMetrics,
+          winningPatterns,
+          topPerformingCreatives: topCreatives,
+          
           lastUpdated: new Date(),
           timePeriod: options.timePeriod || 'last_90_days',
-          insightsDateRange: {
-            startDate,
-            endDate
-          },
+          insightsDateRange: dateRange,
           isComplete: true,
           syncStatus: 'completed',
           syncErrors: []
@@ -165,10 +231,28 @@ export class MetaDataSyncService {
         { upsert: true }
       );
 
-      console.log('🎉 COMPLETE Meta data sync finished successfully!');
+      // Store historical insights separately for long-term analysis
+      if (options.includeHistoricalAnalysis) {
+        await this.storeHistoricalInsights(
+          options.userId,
+          options.metaAccountId,
+          successMetrics,
+          winningPatterns
+        );
+      }
+
+      console.log('🎉 ENHANCED Meta data sync completed successfully!');
+      console.log(`📈 Summary:`);
+      console.log(`   - Campaigns: ${campaigns.length}`);
+      console.log(`   - Ad Sets: ${adsets.length}`);
+      console.log(`   - Ads: ${ads.length}`);
+      console.log(`   - Insights: ${insights.length}`);
+      console.log(`   - Success Metrics: ${successMetrics.length}`);
+      console.log(`   - Winning Patterns: ${winningPatterns.length}`);
+      console.log(`   - Top Creatives: ${topCreatives.length}`);
 
     } catch (error) {
-      console.error('❌ Meta data sync failed:', error);
+      console.error('❌ Enhanced Meta data sync failed:', error);
 
       await MetaAccountCache.findOneAndUpdate(
         { userId: options.userId, metaAccountId: options.metaAccountId },
@@ -184,135 +268,526 @@ export class MetaDataSyncService {
   }
 
   /**
-   * FAST CACHED DATA RETRIEVAL - No API calls!
+   * Fetch account data
    */
-  async getCachedAccountData(userId: string, metaAccountId: string) {
-    await connectDB();
-
-    const cache = await MetaAccountCache.findOne({
-      userId,
-      metaAccountId,
-      isComplete: true
-    });
-
-    if (!cache) {
-      throw new Error('Meta account data not cached. Please sync first.');
-    }
-
-    // Check if cache is stale (older than 24 hours)
-    const isStale = cache.lastUpdated < new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    return {
-      data: cache,
-      isStale,
-      lastUpdated: cache.lastUpdated
-    };
-  }
-
-  // PRIVATE METHODS - AD ACCOUNT CONTEXT ONLY (Strict separation)
-
-  /**
-   * Fetch Ad Account data - ONLY Ad Account fields, NO Page fields
-   */
-  private async fetchAdAccountData(accountId: string) {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    console.log(`🔍 Fetching AD ACCOUNT data for: ${formattedAccountId} (original: ${accountId})`);
-
-    // STRICT AD ACCOUNT FIELDS ONLY - NO PAGE FIELDS
+  private async fetchAccountData(accountId: string) {
     const fields = [
       'account_id', 'name', 'account_status', 'currency', 'timezone_name',
       'created_time', 'amount_spent', 'balance', 'business_country_code',
       'timezone_offset_hours_utc', 'min_daily_budget', 'spend_cap',
-      'is_personal', 'is_prepay_account', 'funding_source'
+      'is_personal', 'is_prepay_account', 'funding_source', 'age'
     ].join(',');
 
-    return await this.makeAdAccountRequest(formattedAccountId, fields);
+    const url = `${this.baseUrl}/${accountId}?fields=${fields}&access_token=${this.accessToken}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch account data: ${response.statusText}`);
+    }
+
+    return await response.json();
   }
 
   /**
-   * Fetch campaigns - AD ACCOUNT CONTEXT ONLY
+   * Fetch historical insights with chunking for large date ranges
+   * Now fetches COMPREHENSIVE fields from Meta API
    */
-  private async fetchAdAccountCampaigns(accountId: string) {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
+  private async fetchHistoricalInsights(accountId: string, timePeriod: string) {
+    const allInsights: unknown[] = [];
+    const dateRange = this.getDateRange(timePeriod);
+    
+    // Comprehensive fields list based on Meta API documentation
+    const comprehensiveFields = [
+      // Core identification
+      'account_id', 'account_name', 'account_currency',
+      'campaign_id', 'campaign_name', 'adset_id', 'adset_name', 'ad_id', 'ad_name',
+      
+      // Date fields
+      'date_start', 'date_stop',
+      
+      // Core performance metrics
+      'impressions', 'clicks', 'spend', 'reach', 'frequency',
+      
+      // Cost metrics
+      'cpc', 'cpm', 'cpp', 'ctr',
+      'cost_per_inline_link_click', 'cost_per_inline_post_engagement',
+      'cost_per_unique_click', 'cost_per_unique_inline_link_click',
+      
+      // Engagement metrics
+      'inline_link_clicks', 'inline_link_click_ctr', 'inline_post_engagement',
+      'outbound_clicks', 'outbound_clicks_ctr',
+      
+      // Conversion metrics
+      'actions', 'action_values', 'conversions', 'conversion_values',
+      'cost_per_action_type', 'cost_per_conversion',
+      'cost_per_unique_action_type', 'cost_per_unique_conversion',
+      
+      // ROAS metrics
+      'purchase_roas', 'website_purchase_roas', 'mobile_app_purchase_roas',
+      
+      // Video metrics
+      'video_30_sec_watched_actions', 'video_p25_watched_actions',
+      'video_p50_watched_actions', 'video_p75_watched_actions', 'video_p100_watched_actions',
+      'video_avg_time_watched_actions', 'video_play_actions',
+      
+      // Objective & results
+      'objective', 'optimization_goal', 'results', 'cost_per_result',
+      
+      // Attribution
+      'attribution_setting', 'buying_type',
+      
+      // Canvas/Instant Experience
+      'canvas_avg_view_percent', 'canvas_avg_view_time',
+      
+      // Full view metrics
+      'full_view_impressions', 'full_view_reach',
+      
+      // Social metrics
+      'social_spend'
+    ].join(',');
+    
+    // Chunk by 90 days to avoid API limits
+    const chunks = this.createDateChunks(
+      new Date(dateRange.since),
+      new Date(dateRange.until),
+      90
+    );
 
-    // AD ACCOUNT CAMPAIGN FIELDS ONLY
+    for (const chunk of chunks) {
+      try {
+        // Fetch with comprehensive fields
+        const params = new URLSearchParams({
+          fields: comprehensiveFields,
+          time_range: JSON.stringify({
+            since: chunk.since.toISOString().split('T')[0],
+            until: chunk.until.toISOString().split('T')[0]
+          }),
+          level: 'ad',
+          limit: '1000'
+        });
+
+        const url = `${this.baseUrl}/${accountId}/insights?${params.toString()}&access_token=${this.accessToken}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        allInsights.push(...(data.data || []));
+        
+        // Handle pagination
+        let nextUrl = data.paging?.next;
+        while (nextUrl) {
+          const nextResponse = await fetch(nextUrl);
+          const nextData = await nextResponse.json();
+          allInsights.push(...(nextData.data || []));
+          nextUrl = nextData.paging?.next;
+          
+          // Small delay to avoid rate limits
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+      } catch (error) {
+        console.warn(`Failed to fetch insights chunk:`, error);
+      }
+    }
+
+    return allInsights;
+  }
+
+  /**
+   * Fetch placement performance data with comprehensive fields
+   */
+  private async fetchPlacementPerformance(accountId: string, timePeriod: string) {
+    const dateRange = this.getDateRange(timePeriod);
+    
     const fields = [
-      'id', 'name', 'status', 'objective', 'created_time', 'updated_time',
-      'daily_budget', 'lifetime_budget', 'buying_type', 'bid_strategy',
-      'configured_status', 'effective_status', 'budget_remaining',
-      'start_time', 'stop_time', 'spend_cap'
+      'date_start', 'date_stop',
+      'publisher_platform', 'platform_position', 'device_platform', 'impression_device',
+      'impressions', 'clicks', 'spend', 'reach', 'frequency',
+      'ctr', 'cpc', 'cpm', 'cpp',
+      'actions', 'action_values', 'conversions', 'conversion_values',
+      'outbound_clicks', 'inline_link_clicks',
+      'video_p50_watched_actions', 'video_p100_watched_actions'
     ].join(',');
-
-    return await this.fetchAllPaginated(`${formattedAccountId}/campaigns`, fields);
-  }
-
-  /**
-   * Fetch ad sets - AD ACCOUNT CONTEXT ONLY
-   */
-  private async fetchAdAccountAdSets(accountId: string) {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    // AD ACCOUNT AD SET FIELDS ONLY
-    const fields = [
-      'id', 'name', 'status', 'configured_status', 'effective_status',
-      'created_time', 'updated_time', 'campaign_id', 'daily_budget', 'lifetime_budget',
-      'bid_amount', 'bid_strategy', 'billing_event', 'optimization_goal',
-      'targeting', 'start_time', 'end_time', 'budget_remaining'
-    ].join(',');
-
-    return await this.fetchAllPaginated(`${formattedAccountId}/adsets`, fields);
-  }
-
-  /**
-   * Fetch ads - AD ACCOUNT CONTEXT ONLY
-   */
-  private async fetchAdAccountAds(accountId: string) {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    // AD ACCOUNT AD FIELDS WITH RICH CREATIVE DATA - Safer Set
-    // Removed object_story_spec which can be huge and cause 500s
-    const richFields = [
-      'id', 'name', 'status', 'configured_status', 'effective_status',
-      'created_time', 'updated_time', 'adset_id', 'campaign_id',
-      'creative{id,name,title,body,image_url,thumbnail_url,call_to_action_type}',
-      'bid_amount', 'bid_type'
-    ].join(',');
-
-    // Fallback fields if rich fetch fails
-    const basicFields = [
-      'id', 'name', 'status', 'configured_status', 'effective_status',
-      'created_time', 'updated_time', 'adset_id', 'campaign_id',
-      'creative', 'bid_amount', 'bid_type'
-    ].join(',');
-
+    
     try {
-      console.log('Trying to fetch ads with RICH creative data...');
-      return await this.fetchAllPaginated(`${formattedAccountId}/ads`, richFields);
+      const params = new URLSearchParams({
+        fields,
+        time_range: JSON.stringify({
+          since: dateRange.since,
+          until: dateRange.until
+        }),
+        level: 'account',
+        breakdowns: 'publisher_platform,platform_position,device_platform,impression_device',
+        limit: '1000'
+      });
+
+      const url = `${this.baseUrl}/${accountId}/insights?${params.toString()}&access_token=${this.accessToken}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data.data || [];
     } catch (error) {
-      console.warn('⚠️ Failed to fetch rich ad data (likely 500 error). Falling back to basic ad data.', error);
-      return await this.fetchAllPaginated(`${formattedAccountId}/ads`, basicFields);
+      console.warn('Failed to fetch placement performance:', error);
+      return [];
     }
   }
 
   /**
-   * Fetch insights - AD ACCOUNT CONTEXT ONLY
+   * Fetch demographic performance data with comprehensive fields
    */
-  private async fetchAdAccountInsights(accountId: string, timePeriod: 'last_30_days' | 'last_90_days' | 'last_6_months' | 'last_year' | 'last_2_years' | 'last_5_years' | 'all_time' = 'last_90_days') {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    // AD ACCOUNT INSIGHTS FIELDS ONLY - NO PAGE METRICS
+  private async fetchDemographicPerformance(accountId: string, timePeriod: string) {
+    const dateRange = this.getDateRange(timePeriod);
+    
     const fields = [
-      'date_start', 'date_stop', 'impressions', 'clicks', 'spend', 'reach',
-      'frequency', 'cpm', 'cpc', 'ctr', 'conversions', 'conversion_values',
-      'cost_per_conversion', 'campaign_id', 'campaign_name', 'adset_id', 'adset_name',
-      'ad_id', 'ad_name', 'objective', 'actions', 'action_values'
+      'date_start', 'date_stop',
+      'age', 'gender',
+      'impressions', 'clicks', 'spend', 'reach', 'frequency',
+      'ctr', 'cpc', 'cpm', 'cpp',
+      'actions', 'action_values', 'conversions', 'conversion_values',
+      'outbound_clicks', 'inline_link_clicks',
+      'video_p50_watched_actions'
     ].join(',');
+    
+    try {
+      const params = new URLSearchParams({
+        fields,
+        time_range: JSON.stringify({
+          since: dateRange.since,
+          until: dateRange.until
+        }),
+        level: 'account',
+        breakdowns: 'age,gender',
+        limit: '1000'
+      });
 
+      const url = `${this.baseUrl}/${accountId}/insights?${params.toString()}&access_token=${this.accessToken}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.warn('Failed to fetch demographic performance:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Calculate campaign success metrics
+   */
+  private async calculateCampaignSuccessMetrics(
+    campaigns: unknown[],
+    insights: unknown[]
+  ): Promise<CampaignSuccessMetrics[]> {
+    const metrics: CampaignSuccessMetrics[] = [];
+
+    for (const campaignData of campaigns) {
+      const campaign = (campaignData as { campaign: { id: string; name: string; objective: string; insights?: unknown } }).campaign;
+      
+      // Get all insights for this campaign
+      const campaignInsights = insights.filter((i: unknown) => 
+        (i as { campaign_id: string }).campaign_id === campaign.id
+      );
+
+      if (campaignInsights.length === 0) continue;
+
+      // Aggregate metrics
+      const totals = campaignInsights.reduce((acc: {
+        spend: number;
+        revenue: number;
+        conversions: number;
+        clicks: number;
+        impressions: number;
+        reach: number;
+      }, insight: unknown) => {
+        const i = insight as {
+          spend?: string;
+          conversion_values?: string;
+          conversions?: string;
+          clicks?: string;
+          impressions?: string;
+          reach?: string;
+        };
+        return {
+          spend: acc.spend + parseFloat(i.spend || '0'),
+          revenue: acc.revenue + parseFloat(i.conversion_values || '0'),
+          conversions: acc.conversions + parseFloat(i.conversions || '0'),
+          clicks: acc.clicks + parseFloat(i.clicks || '0'),
+          impressions: acc.impressions + parseFloat(i.impressions || '0'),
+          reach: acc.reach + parseFloat(i.reach || '0')
+        };
+      }, { spend: 0, revenue: 0, conversions: 0, clicks: 0, impressions: 0, reach: 0 });
+
+      const roas = totals.spend > 0 ? totals.revenue / totals.spend : 0;
+      const conversionRate = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+      const cpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0;
+      const cpm = totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : 0;
+      const frequency = totals.reach > 0 ? totals.impressions / totals.reach : 0;
+
+      // Calculate success score (0-100)
+      const roasScore = Math.min(roas * 10, 40); // Max 40 points
+      const ctrScore = Math.min(ctr * 10, 30); // Max 30 points
+      const conversionScore = Math.min(conversionRate * 3, 30); // Max 30 points
+      const successScore = roasScore + ctrScore + conversionScore;
+
+      // Determine performance rating
+      let performanceRating: 'excellent' | 'good' | 'average' | 'poor';
+      if (successScore >= 75) performanceRating = 'excellent';
+      else if (successScore >= 50) performanceRating = 'good';
+      else if (successScore >= 25) performanceRating = 'average';
+      else performanceRating = 'poor';
+
+      // Determine learning phase
+      let learningPhase: 'learning' | 'active' | 'mature';
+      if (totals.conversions < 50) learningPhase = 'learning';
+      else if (totals.conversions < 500) learningPhase = 'active';
+      else learningPhase = 'mature';
+
+      metrics.push({
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        objective: campaign.objective,
+        totalSpend: totals.spend,
+        totalRevenue: totals.revenue,
+        roas,
+        conversions: totals.conversions,
+        conversionRate,
+        ctr,
+        cpc,
+        cpm,
+        reach: totals.reach,
+        impressions: totals.impressions,
+        clicks: totals.clicks,
+        frequency,
+        successScore,
+        performanceRating,
+        learningPhase,
+        dateRange: {
+          start: new Date(Math.min(...campaignInsights.map((i: unknown) => 
+            new Date((i as { date_start: string }).date_start).getTime()
+          ))),
+          end: new Date(Math.max(...campaignInsights.map((i: unknown) => 
+            new Date((i as { date_stop: string }).date_stop).getTime()
+          )))
+        }
+      });
+    }
+
+    return metrics.sort((a, b) => b.successScore - a.successScore);
+  }
+
+  /**
+   * Analyze winning patterns from historical data
+   */
+  private async analyzeWinningPatterns(
+    campaigns: unknown[],
+    insights: unknown[],
+    placementInsights: unknown[],
+    demographicInsights: unknown[]
+  ): Promise<WinningPattern[]> {
+    const patterns: WinningPattern[] = [];
+
+    // Analyze placement patterns
+    const placementPattern = this.analyzePlacementPatterns(placementInsights);
+    if (placementPattern) patterns.push(placementPattern);
+
+    // Analyze demographic patterns
+    const demographicPattern = this.analyzeDemographicPatterns(demographicInsights);
+    if (demographicPattern) patterns.push(demographicPattern);
+
+    // Analyze budget patterns
+    const budgetPattern = this.analyzeBudgetPatterns(campaigns, insights);
+    if (budgetPattern) patterns.push(budgetPattern);
+
+    // Analyze timing patterns
+    const timingPattern = this.analyzeTimingPatterns(insights);
+    if (timingPattern) patterns.push(timingPattern);
+
+    return patterns;
+  }
+
+  private analyzePlacementPatterns(insights: unknown[]): WinningPattern | null {
+    if (insights.length === 0) return null;
+
+    // Group by placement and calculate performance
+    const placementPerf = insights.reduce((acc: Record<string, {
+      spend: number;
+      revenue: number;
+      clicks: number;
+      impressions: number;
+      count: number;
+    }>, insight: unknown) => {
+      const i = insight as {
+        publisher_platform?: string;
+        platform_position?: string;
+        spend?: string;
+        conversion_values?: string;
+        clicks?: string;
+        impressions?: string;
+      };
+      const key = `${i.publisher_platform || 'unknown'}_${i.platform_position || 'unknown'}`;
+      if (!acc[key]) acc[key] = { spend: 0, revenue: 0, clicks: 0, impressions: 0, count: 0 };
+      acc[key].spend += parseFloat(i.spend || '0');
+      acc[key].revenue += parseFloat(i.conversion_values || '0');
+      acc[key].clicks += parseFloat(i.clicks || '0');
+      acc[key].impressions += parseFloat(i.impressions || '0');
+      acc[key].count++;
+      return acc;
+    }, {});
+
+    // Find best performing placement
+    let bestPlacement = '';
+    let bestROAS = 0;
+    let bestCTR = 0;
+
+    for (const [placement, perf] of Object.entries(placementPerf)) {
+      const roas = perf.spend > 0 ? perf.revenue / perf.spend : 0;
+      const ctr = perf.impressions > 0 ? (perf.clicks / perf.impressions) * 100 : 0;
+      
+      if (roas > bestROAS) {
+        bestROAS = roas;
+        bestCTR = ctr;
+        bestPlacement = placement;
+      }
+    }
+
+    if (!bestPlacement) return null;
+
+    return {
+      patternType: 'placement',
+      description: `Best performing placement: ${bestPlacement}`,
+      successRate: 0,
+      avgROAS: bestROAS,
+      avgCTR: bestCTR,
+      sampleSize: placementPerf[bestPlacement].count,
+      recommendations: [
+        `Focus budget on ${bestPlacement} placement`,
+        `ROAS: ${bestROAS.toFixed(2)}x`,
+        `CTR: ${bestCTR.toFixed(2)}%`
+      ]
+    };
+  }
+
+  private analyzeDemographicPatterns(insights: unknown[]): WinningPattern | null {
+    if (insights.length === 0) return null;
+
+    // Similar analysis for demographics
+    const demoPerf = insights.reduce((acc: Record<string, {
+      spend: number;
+      revenue: number;
+      clicks: number;
+      impressions: number;
+      count: number;
+    }>, insight: unknown) => {
+      const i = insight as {
+        age?: string;
+        gender?: string;
+        spend?: string;
+        conversion_values?: string;
+        clicks?: string;
+        impressions?: string;
+      };
+      const key = `${i.age || 'unknown'}_${i.gender || 'unknown'}`;
+      if (!acc[key]) acc[key] = { spend: 0, revenue: 0, clicks: 0, impressions: 0, count: 0 };
+      acc[key].spend += parseFloat(i.spend || '0');
+      acc[key].revenue += parseFloat(i.conversion_values || '0');
+      acc[key].clicks += parseFloat(i.clicks || '0');
+      acc[key].impressions += parseFloat(i.impressions || '0');
+      acc[key].count++;
+      return acc;
+    }, {});
+
+    let bestDemo = '';
+    let bestROAS = 0;
+    let bestCTR = 0;
+
+    for (const [demo, perf] of Object.entries(demoPerf)) {
+      const roas = perf.spend > 0 ? perf.revenue / perf.spend : 0;
+      const ctr = perf.impressions > 0 ? (perf.clicks / perf.impressions) * 100 : 0;
+      
+      if (roas > bestROAS) {
+        bestROAS = roas;
+        bestCTR = ctr;
+        bestDemo = demo;
+      }
+    }
+
+    if (!bestDemo) return null;
+
+    return {
+      patternType: 'targeting',
+      description: `Best performing demographic: ${bestDemo}`,
+      successRate: 0,
+      avgROAS: bestROAS,
+      avgCTR: bestCTR,
+      sampleSize: demoPerf[bestDemo].count,
+      recommendations: [
+        `Target ${bestDemo} demographic`,
+        `ROAS: ${bestROAS.toFixed(2)}x`,
+        `CTR: ${bestCTR.toFixed(2)}%`
+      ]
+    };
+  }
+
+  private analyzeBudgetPatterns(campaigns: unknown[], insights: unknown[]): WinningPattern | null {
+    // Analyze budget allocation patterns
+    return null; // Implement based on specific needs
+  }
+
+  private analyzeTimingPatterns(insights: unknown[]): WinningPattern | null {
+    // Analyze timing patterns (day of week, time of day)
+    return null; // Implement based on specific needs
+  }
+
+  /**
+   * Store historical insights for long-term trend analysis
+   */
+  private async storeHistoricalInsights(
+    userId: string,
+    metaAccountId: string,
+    successMetrics: CampaignSuccessMetrics[],
+    winningPatterns: WinningPattern[]
+  ) {
+    try {
+      await HistoricalInsights.create({
+        userId,
+        metaAccountId,
+        dateStart: new Date(Math.min(...successMetrics.map(m => m.dateRange.start.getTime()))),
+        dateEnd: new Date(Math.max(...successMetrics.map(m => m.dateRange.end.getTime()))),
+        campaignMetrics: successMetrics,
+        winningPatterns,
+        aggregatedMetrics: {
+          totalSpend: successMetrics.reduce((sum, m) => sum + m.totalSpend, 0),
+          totalRevenue: successMetrics.reduce((sum, m) => sum + m.totalRevenue, 0),
+          avgROAS: successMetrics.reduce((sum, m) => sum + m.roas, 0) / successMetrics.length,
+          avgCTR: successMetrics.reduce((sum, m) => sum + m.ctr, 0) / successMetrics.length,
+          totalConversions: successMetrics.reduce((sum, m) => sum + m.conversions, 0)
+        }
+      });
+      console.log('✅ Historical insights stored');
+    } catch (error) {
+      console.warn('Failed to store historical insights:', error);
+    }
+  }
+
+  /**
+   * Helper: Get date range for time period
+   */
+  private getDateRange(timePeriod: string): { since: string; until: string } {
     const endDate = new Date();
     let startDate: Date;
 
-    // Calculate start date based on time period
     switch (timePeriod) {
       case 'last_30_days':
         startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -339,297 +814,108 @@ export class MetaDataSyncService {
         startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
     }
 
-    // Meta API has limits on date ranges (usually ~37 months max for ad-level insights)
-    // To be safe and support "All Time" (10 years), we chunk requests by year.
-    const allInsights: unknown[] = [];
+    return {
+      since: startDate.toISOString().split('T')[0],
+      until: endDate.toISOString().split('T')[0]
+    };
+  }
 
-    // Chunk size in milliseconds (1 year roughly)
-    const CHUNK_SIZE = 365 * 24 * 60 * 60 * 1000;
+  private getDateRangeObject(timePeriod: string): { startDate: Date; endDate: Date } {
+    const range = this.getDateRange(timePeriod);
+    return {
+      startDate: new Date(range.since),
+      endDate: new Date(range.until)
+    };
+  }
 
-    let currentEndDate = endDate;
-    let currentStartDate = new Date(Math.max(startDate.getTime(), currentEndDate.getTime() - CHUNK_SIZE));
+  /**
+   * Helper: Create date chunks for large date ranges
+   */
+  private createDateChunks(
+    startDate: Date,
+    endDate: Date,
+    chunkDays: number
+  ): Array<{ since: Date; until: Date }> {
+    const chunks: Array<{ since: Date; until: Date }> = [];
+    let currentStart = new Date(startDate);
 
-    while (currentEndDate > startDate) {
-      console.log(`📊 Fetching AD ACCOUNT insights chunk: ${currentStartDate.toISOString().split('T')[0]} to ${currentEndDate.toISOString().split('T')[0]}`);
+    while (currentStart < endDate) {
+      const currentEnd = new Date(
+        Math.min(
+          currentStart.getTime() + chunkDays * 24 * 60 * 60 * 1000,
+          endDate.getTime()
+        )
+      );
 
-      const params = new URLSearchParams({
-        fields,
-        time_range: JSON.stringify({
-          since: currentStartDate.toISOString().split('T')[0],
-          until: currentEndDate.toISOString().split('T')[0]
-        }),
-        level: 'ad',
-        limit: '1000'
+      chunks.push({
+        since: new Date(currentStart),
+        until: new Date(currentEnd)
       });
 
-      try {
-        const chunkData = await this.fetchAllPaginated(`${formattedAccountId}/insights`, fields, params);
-        allInsights.push(...chunkData);
-      } catch (error) {
-        console.warn(`⚠️ Failed to fetch chunk ${currentStartDate.toISOString()} - ${currentEndDate.toISOString()}:`, error);
-        // Continue to next chunk instead of failing entirely
-      }
-
-      // Move backward in time
-      currentEndDate = new Date(currentStartDate.getTime() - 24 * 60 * 60 * 1000); // 1 day before start
-      currentStartDate = new Date(Math.max(startDate.getTime(), currentEndDate.getTime() - CHUNK_SIZE));
-
-      // Safety break
-      if (currentEndDate < startDate) break;
+      currentStart = new Date(currentEnd.getTime() + 24 * 60 * 60 * 1000);
     }
 
-    return allInsights;
-  }
-
-  /**
-   * Fetch custom audiences - AD ACCOUNT CONTEXT ONLY
-   */
-  private async fetchAdAccountCustomAudiences(accountId: string) {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    // AD ACCOUNT CUSTOM AUDIENCE FIELDS ONLY
-    const fields = [
-      'id', 'name', 'description', 'approximate_count_lower_bound', 'approximate_count_upper_bound',
-      'data_source', 'delivery_status', 'operation_status', 'subtype',
-      'time_created', 'time_updated', 'retention_days'
-    ].join(',');
-
-    return await this.fetchAllPaginated(`${formattedAccountId}/customaudiences`, fields);
-  }
-
-  /**
-   * Fetch pixels - AD ACCOUNT CONTEXT ONLY
-   */
-  private async fetchAdAccountPixels(accountId: string) {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    // AD ACCOUNT PIXEL FIELDS ONLY
-    const fields = [
-      'id', 'name', 'code', 'creation_time', 'last_fired_time',
-      'can_proxy', 'is_created_by_business', 'is_crm'
-    ].join(',');
-
-    return await this.fetchAllPaginated(`${formattedAccountId}/adspixels`, fields);
-  }
-
-  /**
-   * Fetch Placement Insights (Platform, Position, Device)
-   * Essential for "Expert Marketer" logic to know WHERE ads work best.
-   */
-  private async fetchPlacementInsights(accountId: string, timePeriod: 'last_30_days' | 'last_90_days' | 'last_6_months' | 'last_year' | 'last_2_years' | 'last_5_years' | 'all_time' = 'last_90_days') {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    const fields = [
-      'date_start', 'date_stop', 'impressions', 'spend', 'clicks',
-      'ctr', 'cpc', 'cpm', 'actions', 'outbound_clicks', 'video_p50_watched_actions'
-    ].join(',');
-
-    const endDate = new Date();
-    let startDate: Date;
-
-    // Simple start date logic (same as main insights)
-    switch (timePeriod) {
-      case 'last_30_days': startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); break;
-      case 'last_90_days': startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000); break;
-      case 'last_6_months': startDate = new Date(endDate.getTime() - 180 * 24 * 60 * 60 * 1000); break;
-      case 'last_year': startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000); break;
-      case 'last_2_years': startDate = new Date(endDate.getTime() - 2 * 365 * 24 * 60 * 60 * 1000); break;
-      case 'last_5_years': startDate = new Date(endDate.getTime() - 5 * 365 * 24 * 60 * 60 * 1000); break;
-      case 'all_time': startDate = new Date(endDate.getTime() - 10 * 365 * 24 * 60 * 60 * 1000); break;
-      default: startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
-    }
-
-    // Chunk logic for placement insights
-    const allInsights: unknown[] = [];
-    const CHUNK_SIZE = 365 * 24 * 60 * 60 * 1000;
-
-    let currentEndDate = endDate;
-    let currentStartDate = new Date(Math.max(startDate.getTime(), currentEndDate.getTime() - CHUNK_SIZE));
-
-    while (currentEndDate > startDate) {
-      console.log(`📊 Fetching PLACEMENT insights chunk: ${currentStartDate.toISOString().split('T')[0]} to ${currentEndDate.toISOString().split('T')[0]}`);
-
-      const params = new URLSearchParams({
-        fields,
-        time_range: JSON.stringify({
-          since: currentStartDate.toISOString().split('T')[0],
-          until: currentEndDate.toISOString().split('T')[0]
-        }),
-        level: 'account',
-        breakdowns: 'publisher_platform,platform_position,device_platform,impression_device',
-        limit: '1000'
-      });
-
-      try {
-        const chunkData = await this.fetchAllPaginated(`${formattedAccountId}/insights`, fields, params);
-        if (chunkData.length > 0) {
-          allInsights.push(...chunkData);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Failed to fetch placement chunk`, error);
-      }
-
-      // Move backward in time
-      // Ensure we don't get stuck in an infinite loop due to floating point precision or dates not moving
-      const prevEndDate = currentEndDate;
-      currentEndDate = new Date(currentStartDate.getTime() - 24 * 60 * 60 * 1000);
-
-      // Safety check to ensure progress
-      if (currentEndDate >= prevEndDate) {
-        currentEndDate = new Date(prevEndDate.getTime() - CHUNK_SIZE);
-      }
-
-      currentStartDate = new Date(Math.max(startDate.getTime(), currentEndDate.getTime() - CHUNK_SIZE));
-
-      if (currentEndDate < startDate) break;
-    }
-
-    return allInsights;
-  }
-
-  /**
-   * Fetch Demographic Insights (Age, Gender)
-   * Essential for "Expert Marketer" logic to know WHO to target.
-   */
-  private async fetchDemographicInsights(accountId: string, timePeriod: 'last_30_days' | 'last_90_days' | 'last_6_months' | 'last_year' | 'last_2_years' | 'last_5_years' | 'all_time' = 'last_90_days') {
-    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
-
-    const fields = [
-      'date_start', 'date_stop', 'impressions', 'spend', 'clicks',
-      'ctr', 'cpc', 'cpm', 'actions', 'outbound_clicks', 'video_p50_watched_actions'
-    ].join(',');
-
-    const endDate = new Date();
-    let startDate: Date;
-
-    switch (timePeriod) {
-      case 'last_30_days': startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); break;
-      case 'last_90_days': startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000); break;
-      case 'last_6_months': startDate = new Date(endDate.getTime() - 180 * 24 * 60 * 60 * 1000); break;
-      case 'last_year': startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000); break;
-      case 'last_2_years': startDate = new Date(endDate.getTime() - 2 * 365 * 24 * 60 * 60 * 1000); break;
-      case 'last_5_years': startDate = new Date(endDate.getTime() - 5 * 365 * 24 * 60 * 60 * 1000); break;
-      case 'all_time': startDate = new Date(endDate.getTime() - 10 * 365 * 24 * 60 * 60 * 1000); break;
-      default: startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
-    }
-
-    // Chunk logic for demographics
-    const allInsights: unknown[] = [];
-    const CHUNK_SIZE = 365 * 24 * 60 * 60 * 1000;
-
-    let currentEndDate = endDate;
-    let currentStartDate = new Date(Math.max(startDate.getTime(), currentEndDate.getTime() - CHUNK_SIZE));
-
-    while (currentEndDate > startDate) {
-      console.log(`📊 Fetching DEMOGRAPHIC insights chunk: ${currentStartDate.toISOString().split('T')[0]} to ${currentEndDate.toISOString().split('T')[0]}`);
-
-      const params = new URLSearchParams({
-        fields,
-        time_range: JSON.stringify({
-          since: currentStartDate.toISOString().split('T')[0],
-          until: currentEndDate.toISOString().split('T')[0]
-        }),
-        level: 'account',
-        breakdowns: 'age,gender',
-        limit: '1000'
-      });
-
-      try {
-        const chunkData = await this.fetchAllPaginated(`${formattedAccountId}/insights`, fields, params);
-        if (chunkData.length > 0) {
-          allInsights.push(...chunkData);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Failed to fetch demographic chunk`, error);
-      }
-
-      // Move backward
-      const prevEndDate = currentEndDate;
-      currentEndDate = new Date(currentStartDate.getTime() - 24 * 60 * 60 * 1000);
-
-      // Safety check
-      if (currentEndDate >= prevEndDate) {
-        currentEndDate = new Date(prevEndDate.getTime() - CHUNK_SIZE);
-      }
-
-      currentStartDate = new Date(Math.max(startDate.getTime(), currentEndDate.getTime() - CHUNK_SIZE));
-
-      if (currentEndDate < startDate) break;
-    }
-
-    return allInsights;
-  }
-
-  /**
-   * Make Ad Account request with error handling for Page-only fields
-   */
-  private async makeAdAccountRequest(accountId: string, fields: string) {
-    const url = `${this.baseUrl}/${accountId}?fields=${fields}&access_token=${this.accessToken}`;
-    console.log(`🌐 Making AD ACCOUNT request to: ${url.replace(this.accessToken, '[REDACTED]')}`);
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Meta API Error (${response.status}):`, errorText);
-
-      // Check for Page-only field errors and handle gracefully
-      if (errorText.includes('parameter page_id is required') ||
-        errorText.includes('show_checkout_experience')) {
-        console.warn('⚠️ Page-only field detected in Ad Account request - this should not happen with current implementation');
-        throw new Error('Page-only field in Ad Account context - implementation error');
-      }
-
-      throw new Error(`Failed to fetch account data: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log(`✅ Ad Account data fetched successfully for ${accountId}`);
-    return data;
-  }
-
-  private async fetchAllPaginated(endpoint: string, fields: string, extraParams?: URLSearchParams) {
-    const allData: unknown[] = [];
-    let nextUrl = `${this.baseUrl}/${endpoint}?fields=${fields}&limit=1000&access_token=${this.accessToken}`;
-
-    if (extraParams) {
-      nextUrl += `&${extraParams.toString()}`;
-    }
-
-    while (nextUrl) {
-      const response = await fetch(nextUrl);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${endpoint}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      allData.push(...(data.data || []));
-
-      nextUrl = data.paging?.next || null;
-
-      // Add small delay to avoid rate limits
-      if (nextUrl) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-
-    return allData;
+    return chunks;
   }
 }
 
 /**
- * HELPER FUNCTIONS FOR QUICK ACCESS
+ * HELPER FUNCTIONS
  */
 
-export async function syncMetaAccountData(options: MetaSyncOptions) {
-  const syncService = new MetaDataSyncService(options.accessToken);
-  return await syncService.syncCompleteAccountData(options);
+export async function syncEnhancedMetaData(options: EnhancedMetaSyncOptions) {
+  const syncService = new EnhancedMetaDataSyncService(options.accessToken);
+  return await syncService.syncEnhancedAccountData(options);
+}
+
+export async function getCachedEnhancedData(userId: string, metaAccountId: string) {
+  await connectDB();
+
+  const cache = await MetaAccountCache.findOne({
+    userId,
+    metaAccountId,
+    isComplete: true
+  });
+
+  if (!cache) {
+    throw new Error('Enhanced Meta account data not cached. Please sync first.');
+  }
+
+  const isStale = cache.lastUpdated < new Date(Date.now() - 12 * 60 * 60 * 1000); // 12 hours
+
+  return {
+    data: cache,
+    isStale,
+    lastUpdated: cache.lastUpdated,
+    hasEnhancedData: !!(cache as { campaignSuccessMetrics?: unknown }).campaignSuccessMetrics
+  };
+}
+
+// Legacy function names for backward compatibility
+export async function syncMetaAccountData(options: EnhancedMetaSyncOptions) {
+  return await syncEnhancedMetaData(options);
 }
 
 export async function getCachedMetaData(userId: string, metaAccountId: string) {
-  const syncService = new MetaDataSyncService(''); // No token needed for cached data
-  return await syncService.getCachedAccountData(userId, metaAccountId);
+  await connectDB();
+
+  const cache = await MetaAccountCache.findOne({
+    userId,
+    metaAccountId,
+    isComplete: true
+  });
+
+  if (!cache) {
+    throw new Error('Meta account data not cached. Please sync first.');
+  }
+
+  const isStale = cache.lastUpdated < new Date(Date.now() - 12 * 60 * 60 * 1000);
+
+  return {
+    data: cache,
+    isStale,
+    lastUpdated: cache.lastUpdated
+  };
 }
 
 export async function getAccountMaturity(userId: string, metaAccountId: string): Promise<'not_connected' | 'early_stage' | 'partially_trained' | 'mature'> {
@@ -656,3 +942,5 @@ export async function getAccountMaturity(userId: string, metaAccountId: string):
     return 'not_connected';
   }
 }
+
+export default EnhancedMetaDataSyncService;

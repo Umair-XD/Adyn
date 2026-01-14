@@ -2,21 +2,22 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IHistoricalInsights extends Document {
   userId: mongoose.Types.ObjectId;
-  accountId: string;
+  accountId?: string;
+  metaAccountId?: string;
   campaignId?: string;
   adsetId?: string;
   adId?: string;
-  level: 'campaign' | 'adset' | 'ad';
+  level?: 'campaign' | 'adset' | 'ad' | 'account';
   
   // Performance Metrics
-  impressions: number;
-  clicks: number;
-  spend: number;
-  cpm: number;
-  cpc: number;
-  ctr: number;
-  reach: number;
-  frequency: number;
+  impressions?: number;
+  clicks?: number;
+  spend?: number;
+  cpm?: number;
+  cpc?: number;
+  ctr?: number;
+  reach?: number;
+  frequency?: number;
   
   // Conversion Metrics
   actions?: Array<{
@@ -65,6 +66,52 @@ export interface IHistoricalInsights extends Document {
   productKeywords?: string[];
   performanceScore?: number; // 0-100 calculated score
   
+  // ENHANCED: Aggregated Campaign Metrics
+  campaignMetrics?: Array<{
+    campaignId: string;
+    campaignName: string;
+    objective: string;
+    totalSpend: number;
+    totalRevenue: number;
+    roas: number;
+    conversions: number;
+    conversionRate: number;
+    ctr: number;
+    cpc: number;
+    cpm: number;
+    reach: number;
+    impressions: number;
+    clicks: number;
+    frequency: number;
+    successScore: number;
+    performanceRating: 'excellent' | 'good' | 'average' | 'poor';
+    learningPhase: 'learning' | 'active' | 'mature';
+    dateRange: {
+      start: Date;
+      end: Date;
+    };
+  }>;
+  
+  // ENHANCED: Winning Patterns
+  winningPatterns?: Array<{
+    patternType: 'targeting' | 'creative' | 'placement' | 'timing' | 'budget';
+    description: string;
+    successRate: number;
+    avgROAS: number;
+    avgCTR: number;
+    sampleSize: number;
+    recommendations: string[];
+  }>;
+  
+  // ENHANCED: Aggregated Account Metrics
+  aggregatedMetrics?: {
+    totalSpend: number;
+    totalRevenue: number;
+    avgROAS: number;
+    avgCTR: number;
+    totalConversions: number;
+  };
+  
   // Metadata
   lastUpdated: Date;
   createdAt: Date;
@@ -72,11 +119,12 @@ export interface IHistoricalInsights extends Document {
 
 const HistoricalInsightsSchema = new Schema<IHistoricalInsights>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  accountId: { type: String, required: true },
+  accountId: { type: String },
+  metaAccountId: { type: String },
   campaignId: { type: String },
   adsetId: { type: String },
   adId: { type: String },
-  level: { type: String, enum: ['campaign', 'adset', 'ad'], required: true },
+  level: { type: String, enum: ['campaign', 'adset', 'ad', 'account'] },
   
   // Performance Metrics
   impressions: { type: Number, default: 0 },
@@ -141,6 +189,61 @@ const HistoricalInsightsSchema = new Schema<IHistoricalInsights>({
   productKeywords: [String],
   performanceScore: { type: Number, min: 0, max: 100 },
   
+  // ENHANCED: Aggregated Campaign Metrics
+  campaignMetrics: [{
+    campaignId: String,
+    campaignName: String,
+    objective: String,
+    totalSpend: Number,
+    totalRevenue: Number,
+    roas: Number,
+    conversions: Number,
+    conversionRate: Number,
+    ctr: Number,
+    cpc: Number,
+    cpm: Number,
+    reach: Number,
+    impressions: Number,
+    clicks: Number,
+    frequency: Number,
+    successScore: Number,
+    performanceRating: {
+      type: String,
+      enum: ['excellent', 'good', 'average', 'poor']
+    },
+    learningPhase: {
+      type: String,
+      enum: ['learning', 'active', 'mature']
+    },
+    dateRange: {
+      start: Date,
+      end: Date
+    }
+  }],
+  
+  // ENHANCED: Winning Patterns
+  winningPatterns: [{
+    patternType: {
+      type: String,
+      enum: ['targeting', 'creative', 'placement', 'timing', 'budget']
+    },
+    description: String,
+    successRate: Number,
+    avgROAS: Number,
+    avgCTR: Number,
+    sampleSize: Number,
+    recommendations: [String]
+  }],
+  
+  // ENHANCED: Aggregated Account Metrics
+  aggregatedMetrics: {
+    totalSpend: Number,
+    totalRevenue: Number,
+    avgROAS: Number,
+    avgCTR: Number,
+    totalConversions: Number
+  },
+  
   // Metadata
   lastUpdated: { type: Date, default: Date.now }
 }, {
@@ -148,6 +251,7 @@ const HistoricalInsightsSchema = new Schema<IHistoricalInsights>({
 });
 
 // Indexes for efficient queries - avoid accountId to prevent conflicts
+HistoricalInsightsSchema.index({ userId: 1, metaAccountId: 1 });
 HistoricalInsightsSchema.index({ userId: 1, campaignId: 1 });
 HistoricalInsightsSchema.index({ userId: 1, productCategory: 1 });
 HistoricalInsightsSchema.index({ userId: 1, performanceScore: -1 });
@@ -155,5 +259,7 @@ HistoricalInsightsSchema.index({ campaignId: 1 });
 HistoricalInsightsSchema.index({ adsetId: 1 });
 HistoricalInsightsSchema.index({ adId: 1 });
 HistoricalInsightsSchema.index({ dateStart: 1, dateEnd: 1 });
+HistoricalInsightsSchema.index({ 'aggregatedMetrics.avgROAS': -1 });
+HistoricalInsightsSchema.index({ 'aggregatedMetrics.totalRevenue': -1 });
 
 export default mongoose.models.HistoricalInsights || mongoose.model<IHistoricalInsights>('HistoricalInsights', HistoricalInsightsSchema);

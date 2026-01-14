@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openai } from '../lib/ai-config.js';
+import { openai } from '../ai-config';
 
 export interface SemanticAnalyzeInput {
   text: string;
@@ -85,20 +85,26 @@ const schema = z.object({
 
 export async function semanticAnalyze(input: SemanticAnalyzeInput): Promise<SemanticAnalyzeOutput> {
   try {
-    const prompt = `Analyze this product/service content and provide essential marketing insights:
+    const prompt = `You are an elite Growth Marketing Auditor. Analyze the following product/service content and provide deep, actionable marketing insights to drive high-ROAS Meta campaigns.
 
-${input.text}
+    PRODUCT CONTENT:
+    ${input.text}
 
-Provide a concise JSON response with key marketing data: summary, keywords (8-10), value_proposition, unique_selling_point, brand_tone, audience_persona, category, use_cases (3-4), target_segments (2-3 with segment, description, pain_points), geographic_analysis (origin_country, primary_markets, cultural_context, local_preferences, regional_competitors), competitor_analysis (main_competitors, competitive_advantages, market_positioning, differentiation_strategy), and market_size_estimation (total_addressable_market, serviceable_addressable_market, target_market_size, growth_potential).
+    Your analysis must be sophisticated and expert-level.
+    1. Identify the "core hook" that will stop the scroll.
+    2. Define a value proposition that directly addresses the deepest pain point found in the content.
+    3. For geographic analysis, research and provide REAL cultural nuances and specific preferences for the target market.
+    4. HYPER-LOCAL COMPETITION: For the target market (e.g., Pakistan), identify ACTUAL local competitors found in that specific region. DO NOT hallucinate competitors from neighboring countries (e.g., do not suggest Indian brands for a Pakistani store unless they have a major footprint there).
+    5. Provide specific target segments with nuanced behaviors and pain points.
 
-Be specific but concise for fast processing.`;
+    Return a comprehensive JSON response. Be as specific as possible. Avoid generic filler words like "AI-optimized" or "High-potential". Give REAL marketing labels.`;
 
     const { object, usage } = await generateObject({
-      model: openai('gpt-4o'), // Use GPT-4o for faster response
+      model: openai('gpt-4o'),
       schema,
       prompt,
-      system: 'You are a marketing analysis expert. Provide detailed, actionable insights.',
-      temperature: 0.3 // Lower temperature for faster, more deterministic responses
+      system: 'You are an elite D2C growth marketing expert. You have deep knowledge of specific regional markets including Pakistan, UAE, US, and UK. You provide hyper-accurate, non-hallucinated competitor and cultural data.',
+      temperature: 0.2
     });
 
     const usageData = usage as {

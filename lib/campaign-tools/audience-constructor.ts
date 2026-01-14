@@ -5,7 +5,7 @@
  * Handles retargeting, lookalike, interest-based, and broad audiences
  */
 
-import { AdSetStrategy } from './strategy-engine.js';
+import { AdSetStrategy } from './strategy-engine';
 
 export interface AudienceRequirement {
   type: 'broad' | 'interest' | 'retargeting' | 'lookalike';
@@ -65,13 +65,14 @@ export interface AudienceResult {
 export async function audienceConstructor(input: {
   strategy: { adset_strategies: AdSetStrategy[] };
   audience_requirements: AudienceRequirement[];
+  desired_geos: string[];
 }): Promise<{ audiences: AudienceResult[] }> {
 
-  const { strategy } = input;
+  const { strategy, desired_geos } = input;
   const audiences: AudienceResult[] = [];
 
   for (const adsetStrategy of strategy.adset_strategies) {
-    const audience = await constructAudienceForAdSet(adsetStrategy);
+    const audience = await constructAudienceForAdSet(adsetStrategy, desired_geos);
     audiences.push(audience);
   }
 
@@ -89,7 +90,7 @@ export async function audienceConstructor(input: {
   return { audiences };
 }
 
-async function constructAudienceForAdSet(strategy: AdSetStrategy): Promise<AudienceResult> {
+async function constructAudienceForAdSet(strategy: AdSetStrategy, desired_geos: string[]): Promise<AudienceResult> {
   const audience: AudienceResult = {
     adset_id: `adset_${strategy.name.toLowerCase().replace(/\s+/g, '_')}`,
     name: strategy.name,
@@ -107,7 +108,7 @@ async function constructAudienceForAdSet(strategy: AdSetStrategy): Promise<Audie
     age_min: 18,
     age_max: 65,
     geo_locations: {
-      countries: ['US'] // Default to US, should be configurable
+      countries: desired_geos?.length > 0 ? desired_geos : ['US']
     }
   };
 
@@ -343,7 +344,7 @@ function detectAudienceOverlaps(audiences: AudienceResult[]): string[] {
 async function validateInterests(interests: string[]): Promise<Array<{ id: string; name: string }>> {
   // Import the real interest validation service
   try {
-    const { validateInterests: validateMetaInterests, formatInterestsForAPI } = await import('../lib/meta-interests.js');
+    const { validateInterests: validateMetaInterests, formatInterestsForAPI } = await import('./meta-interests');
 
     // Get validated interests with real Meta IDs
     const validatedInterests = await validateMetaInterests(interests);

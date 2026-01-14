@@ -4,12 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:mcp && next build",
-    "build:mcp": "cd mcp-servers/adyn-marketing && npm run build && cd ../adyn-support && npm run build && cd ../..",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "setup": "npm install && npm run build:mcp",
-    "test:mcp": "node test-mcp.js"
+    "setup": "npm install",
   },
   "dependencies": {
     "@ai-sdk/gateway": "^2.0.21",

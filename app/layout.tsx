@@ -4,7 +4,11 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { SupportChatWidget } from "@/components/support/chat-widget";
 
-const urbanist = Urbanist({ subsets: ["latin"] });
+const urbanist = Urbanist({ 
+  subsets: ["latin"],
+  display: 'swap',
+  fallback: ['system-ui', 'arial']
+});
 
 export const metadata: Metadata = {
   title: "Adyn - Marketing Intelligence Platform",

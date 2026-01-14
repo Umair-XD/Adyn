@@ -428,6 +428,58 @@ const MetaAccountCacheSchema = new mongoose.Schema({
     valid_entries: Number
   }],
 
+  // ENHANCED ANALYTICS DATA
+  campaignSuccessMetrics: [{
+    campaignId: String,
+    campaignName: String,
+    objective: String,
+    totalSpend: Number,
+    totalRevenue: Number,
+    roas: Number,
+    conversions: Number,
+    conversionRate: Number,
+    ctr: Number,
+    cpc: Number,
+    cpm: Number,
+    reach: Number,
+    impressions: Number,
+    clicks: Number,
+    frequency: Number,
+    successScore: Number,
+    performanceRating: {
+      type: String,
+      enum: ['excellent', 'good', 'average', 'poor']
+    },
+    learningPhase: {
+      type: String,
+      enum: ['learning', 'active', 'mature']
+    },
+    dateRange: {
+      start: Date,
+      end: Date
+    }
+  }],
+
+  winningPatterns: [{
+    patternType: {
+      type: String,
+      enum: ['targeting', 'creative', 'placement', 'timing', 'budget']
+    },
+    description: String,
+    successRate: Number,
+    avgROAS: Number,
+    avgCTR: Number,
+    sampleSize: Number,
+    recommendations: [String]
+  }],
+
+  topPerformingCreatives: [{
+    ad: mongoose.Schema.Types.Mixed,
+    creative: mongoose.Schema.Types.Mixed,
+    insights: mongoose.Schema.Types.Mixed,
+    performance_score: Number
+  }],
+
   // Cache metadata
   lastUpdated: {
     type: Date,
@@ -435,7 +487,7 @@ const MetaAccountCacheSchema = new mongoose.Schema({
   },
   cacheVersion: {
     type: String,
-    default: '1.0'
+    default: '2.0' // Updated version for enhanced data
   },
   timePeriod: {
     type: String,
